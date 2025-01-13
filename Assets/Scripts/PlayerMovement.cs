@@ -1,28 +1,29 @@
-using Unity.Netcode;
+// using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovement : NetworkBehaviour
+public class PlayerMovement : MonoBehaviour
 {
 	private PlayerReferences playerReferences;
     private Vector2 movementInput;
 
     public void OnMove(InputAction.CallbackContext ctx) => movementInput = ctx.ReadValue<Vector2>();
 
-    public override void OnNetworkSpawn()
+    // public override void OnNetworkSpawn()
+    public void Start()
     {
 
         playerReferences = GetComponent<PlayerReferences>();
         
-        if (!IsOwner) return;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        GetComponent<PlayerInput>().enabled = true;
     }
 
     public void Update()
     {
-        if (!IsOwner) return;
 
         float moveSpeed = 5f;
         float gravity = -9.81f;

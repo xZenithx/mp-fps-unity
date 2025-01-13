@@ -2,12 +2,10 @@ using Unity.Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
 
-public class CameraTrackTarget : NetworkBehaviour
+public class CameraTrackTarget : MonoBehaviour
 {
-	public override void OnNetworkSpawn()
+	public void Start()
     {
-        if (!IsOwner) return;
-
         GameObject.FindGameObjectWithTag("CinemachineCamera").GetComponent<CinemachineCamera>().Follow = transform;
     }
 }
