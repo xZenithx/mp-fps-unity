@@ -1,10 +1,17 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 public class Player : MonoBehaviour
 {
     [SerializeField] private PlayerCharacter playerCharacter;
     [SerializeField] private PlayerCamera playerCamera;
+    [Space]
+    [SerializeField] private CameraSpring cameraSpring;
+    [SerializeField] private CameraLean cameraLean;
+    [Space]
+    [SerializeField] private Volume volume;
+    [SerializeField] private StanceVignette stanceVignette;
 
     private Vector2 LookInput;
     public void OnLook(InputAction.CallbackContext ctx) => LookInput = ctx.ReadValue<Vector2>();
@@ -44,6 +51,9 @@ public class Player : MonoBehaviour
 
         playerCharacter.Initialize();
         playerCamera.Initialize(playerCharacter.GetCameraTarget());
+        cameraSpring.Initialize();
+        cameraLean.Initialize();
+        stanceVignette.Initialize(volume.profile);
     }
 
     public void Update()
@@ -71,7 +81,20 @@ public class Player : MonoBehaviour
 
     public void LateUpdate()
     {
-        playerCamera.UpdatePosition(playerCharacter.GetCameraTarget());
+        float deltaTime = Time.deltaTime;
+        Transform cameraTarget = playerCharacter.GetCameraTarget();
+        CharacterState state = playerCharacter.GetState();
+
+        playerCamera.UpdatePosition(cameraTarget);
+        cameraSpring.UpdateSpring(deltaTime, cameraTarget.up);
+        cameraLean.UpdateLean
+        (
+            deltaTime, 
+            state.Stance is Stance.Slide, 
+            state.Acceleration, 
+            cameraTarget.up
+        );
+        stanceVignette.UpdateVignette(deltaTime, state.Stance);
 
         JumpInput = false;
         InputCrouch = false;
