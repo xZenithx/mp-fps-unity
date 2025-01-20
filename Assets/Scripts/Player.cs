@@ -12,7 +12,13 @@ public class Player : MonoBehaviour
     [Space]
     [SerializeField] private Volume volume;
     [SerializeField] private StanceVignette stanceVignette;
+    [Space]
+    [SerializeField] private WeaponSway weaponSway;
+    private Weapon weapon;
 
+    /*
+        * Input actions
+    */
     private Vector2 LookInput;
     public void OnLook(InputAction.CallbackContext ctx) => LookInput = ctx.ReadValue<Vector2>();
 
@@ -22,8 +28,18 @@ public class Player : MonoBehaviour
         MoveInput = ctx.ReadValue<Vector2>();
     }
 
+    private bool AttackInput;
     public void OnAttack(InputAction.CallbackContext ctx)
-    {}
+    {
+        if (ctx.started) AttackInput = true;
+        if (ctx.canceled) AttackInput = false;
+    }
+
+    private bool ReloadInput;
+    public void OnReload(InputAction.CallbackContext ctx)
+    {
+        if (ctx.started) ReloadInput = true;
+    }
 
     public void OnInteract(InputAction.CallbackContext ctx)
     {}
@@ -45,6 +61,10 @@ public class Player : MonoBehaviour
     public void OnSprint(InputAction.CallbackContext ctx)
     {}
 
+
+    /*
+        * Unity methods
+    */
     public void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
@@ -77,6 +97,18 @@ public class Player : MonoBehaviour
         };
         playerCharacter.UpdateInput(characterInput);
         playerCharacter.UpdateBody(deltaTime);
+
+        weaponSway.UpdateSway(LookInput, deltaTime);
+
+        if (AttackInput)
+        {
+            RequestAttack();
+        }
+
+        if (ReloadInput)
+        {
+            RequestReload();
+        }
     }
 
     public void LateUpdate()
@@ -98,5 +130,36 @@ public class Player : MonoBehaviour
 
         JumpInput = false;
         InputCrouch = false;
+        ReloadInput = false;
+    }
+
+    private void RequestAttack()
+    {
+        if (weapon == null)
+        {
+            weapon = GetComponentInChildren<Weapon>();
+        }
+        
+        if (weapon == null)
+        {
+            return;
+        }
+
+        weapon.Shoot();
+    }
+
+    private void RequestReload()
+    {
+        if (weapon == null)
+        {
+            weapon = GetComponentInChildren<Weapon>();
+        }
+        
+        if (weapon == null)
+        {
+            return;
+        }
+
+        weapon.StartReload();
     }
 }

@@ -246,7 +246,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                     float currentSpeed = currentVelocity.magnitude;
                     Vector3 targetVelocity = groundedMovement * currentSpeed;
                     Vector3 steerVelocity = currentVelocity;
-                    Vector3 steerForce = (targetVelocity - steerVelocity) * slideSteerAcceleration * deltaTime;
+                    Vector3 steerForce = deltaTime * slideSteerAcceleration * (targetVelocity - steerVelocity);
 
                     steerVelocity += steerForce;
                     steerVelocity = Vector3.ClampMagnitude(steerVelocity, currentSpeed);
@@ -328,7 +328,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
                 effectiveGravity *= JumpSustainGravity;
             }
 
-            currentVelocity += motor.CharacterUp * effectiveGravity * deltaTime;
+            currentVelocity += deltaTime * effectiveGravity * motor.CharacterUp;
         }
 
         if (_requestedJump) {
