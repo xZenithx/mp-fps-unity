@@ -82,7 +82,8 @@ public class Player : MonoBehaviour
 
         CameraInput cameraInput = new()
         {
-            Look = LookInput
+            Look = LookInput,
+            weapon = weapon
         };
         playerCamera.UpdateRotation(cameraInput);
 

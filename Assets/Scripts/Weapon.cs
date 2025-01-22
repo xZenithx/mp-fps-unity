@@ -5,15 +5,32 @@ public class Weapon : MonoBehaviour
 {
 	[SerializeField] private GunData gunData;
     [SerializeField] private Transform gunMuzzle;
+    [SerializeField] private Transform weaponMesh;
+    [SerializeField] private AnimationCurve reloadCurve;
 
+    private MultiAudioSource multiAudioSource;
     private float lastTimeShot;
+
+    private void Awake()
+    {
+        gunData.reloading = false;
+        gunData.currentAmmo = gunData.magSize;
+
+        multiAudioSource = GetComponent<MultiAudioSource>();
+
+        if (multiAudioSource == null)
+        {
+            multiAudioSource = gameObject.AddComponent<MultiAudioSource>();
+        }
+
+        multiAudioSource.ParseGunData(gunData);
+        multiAudioSource.CreateAudioSources();
+    }
 
     private bool CanShoot()
     {
         if (gunData.reloading) return false;
-        if (gunData.currentAmmo <= 0) return false;
         if (Time.time - lastTimeShot < 1f / (gunData.fireRate / 60)) return false;
-
 
         return true;
     }
@@ -21,21 +38,30 @@ public class Weapon : MonoBehaviour
     public void Shoot()
     {
         if (!CanShoot()) return;
-        
-        if (Physics.Raycast(gunMuzzle.position, gunMuzzle.forward, out RaycastHit hit, gunData.maxDistance))
-        {
-            Debug.DrawRay(gunMuzzle.position, gunMuzzle.forward * hit.distance, Color.red, 3f);
+        lastTimeShot = Time.time;
 
+        if (gunData.currentAmmo <= 0)
+        {
+            EmptySound();
+            return;
+        }
+
+        Camera playerCamera = Camera.main;
+        if (playerCamera == null) return;
+
+        Ray ray = playerCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
+        if (Physics.Raycast(ray, out RaycastHit hit, gunData.maxDistance))
+        {
+            Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 3f);
         }
 
         gunData.currentAmmo--;
-        lastTimeShot = Time.time;
         OnGunShot();
     }
 
     private void OnGunShot()
     {
-        
+        ShootSound();
     }
 
     public void StartReload()
@@ -43,26 +69,50 @@ public class Weapon : MonoBehaviour
         if (gunData.reloading) return;
         if (gunData.currentAmmo == gunData.magSize) return;
 
+        ReloadSound();
         StartCoroutine(Reload());
     }
+
     private IEnumerator Reload()
     {
         gunData.reloading = true;
 
+        float reloadTime = gunData.reloadTime;
         float elapsedTime = 0f;
-        Quaternion initialRotation = transform.rotation;
-        Quaternion finalRotation = initialRotation * Quaternion.Euler(0, 360, 0);
 
-        while (elapsedTime < gunData.reloadTime)
+        weaponMesh.GetLocalPositionAndRotation(out Vector3 originalPosition, out Quaternion originalRotation);
+        while (elapsedTime < reloadTime)
         {
-            transform.rotation = Quaternion.Slerp(initialRotation, finalRotation, elapsedTime / gunData.reloadTime);
+            float curveValue = reloadCurve.Evaluate(elapsedTime / reloadTime);
+            weaponMesh.localRotation = Quaternion.Euler(0, 360 * curveValue, 0);
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-
-        transform.rotation = finalRotation;
+        weaponMesh.SetLocalPositionAndRotation(originalPosition, originalRotation);
         gunData.reloading = false;
         gunData.currentAmmo = gunData.magSize;
     }
 
+    private void ShootSound()
+    {
+        if (gunData.shotSound == null) return;
+
+        multiAudioSource.PlaySound(gunData.shotSound, gunData.shotSoundVolume, gunData.shotSoundPitchMin, gunData.shotSoundPitchMax);
+    }
+
+    private void ReloadSound()
+    {
+        if (gunData.reloadSound == null) return;
+
+        multiAudioSource.PlaySound(gunData.reloadSound, gunData.reloadSoundVolume, gunData.reloadSoundPitchMin, gunData.reloadSoundPitchMax);
+    }
+
+    public void EmptySound()
+    {
+        if (gunData.emptySound == null) return;
+
+        multiAudioSource.PlaySound(gunData.emptySound, gunData.emptySoundVolume, gunData.emptySoundPitchMin, gunData.emptySoundPitchMax);
+    }
+
+    public GunData GetGunData() => gunData;
 }

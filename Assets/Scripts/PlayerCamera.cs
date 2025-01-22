@@ -3,6 +3,7 @@ using UnityEngine;
 public struct CameraInput
 {
     public Vector2 Look;
+    public Weapon weapon;
 }
 
 public class PlayerCamera : MonoBehaviour

@@ -23,12 +23,15 @@ public class GunData : ScriptableObject
 
     [Header("Audio")]
     public AudioClip shotSound;
+    public int shotSoundVolume = 100;
     public int shotSoundPitchMin = 95;
     public int shotSoundPitchMax = 100;
     public AudioClip reloadSound;
+    public int reloadSoundVolume = 100;
     public int reloadSoundPitchMin = 95;
     public int reloadSoundPitchMax = 100;
     public AudioClip emptySound;
+    public int emptySoundVolume = 100;
     public int emptySoundPitchMin = 95;
     public int emptySoundPitchMax = 100;
 }
