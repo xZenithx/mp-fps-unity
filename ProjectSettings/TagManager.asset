@@ -9,6 +9,10 @@ TagManager:
   - LeftHandPos
   - CameraTarget
   - WeaponModel
+  - Remote Player
+  - Pause Menu
+  - MainMenuCamera
+  - Pause Manager
   layers:
   - Default
   - TransparentFX

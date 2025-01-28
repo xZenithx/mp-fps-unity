@@ -1,8 +1,10 @@
+using KinematicCharacterController;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
-public class Player : MonoBehaviour
+public class Player : NetworkBehaviour
 {
     [SerializeField] private PlayerCharacter playerCharacter;
     [SerializeField] private PlayerCamera playerCamera;
@@ -15,6 +17,7 @@ public class Player : MonoBehaviour
     [Space]
     [SerializeField] private WeaponSway weaponSway;
     private Weapon weapon;
+    private PauseManager pauseManager;
 
     /*
         * Input actions
@@ -61,12 +64,29 @@ public class Player : MonoBehaviour
     public void OnSprint(InputAction.CallbackContext ctx)
     {}
 
+    public void OnPause(InputAction.CallbackContext ctx)
+    {
+        if (ctx.started)
+        {
+            pauseManager.TogglePause();
+        }
+    }
 
     /*
         * Unity methods
     */
-    public void Start()
+    // public void Start()
+    public override void OnNetworkSpawn()
     {
+        if (!IsLocalPlayer)
+        {
+            MakeRemote();
+
+            return;
+        }
+
+        GetComponent<PlayerInput>().enabled = true;
+
         Cursor.lockState = CursorLockMode.Locked;
 
         playerCharacter.Initialize();
@@ -74,15 +94,23 @@ public class Player : MonoBehaviour
         cameraSpring.Initialize();
         cameraLean.Initialize();
         stanceVignette.Initialize(volume.profile);
+        pauseManager = GameObject.FindGameObjectWithTag("Pause Manager").GetComponent<PauseManager>();
     }
 
     public void Update()
     {
+        if (!IsLocalPlayer)
+        {
+            return;
+        }
+
         float deltaTime = Time.deltaTime;
+
+        Vector2 lookInput = pauseManager.IsPaused() ? Vector2.zero : LookInput;
 
         CameraInput cameraInput = new()
         {
-            Look = LookInput,
+            Look = lookInput,
             weapon = weapon
         };
         playerCamera.UpdateRotation(cameraInput);
@@ -99,7 +127,7 @@ public class Player : MonoBehaviour
         playerCharacter.UpdateInput(characterInput);
         playerCharacter.UpdateBody(deltaTime);
 
-        weaponSway.UpdateSway(LookInput, deltaTime);
+        weaponSway.UpdateSway(lookInput, deltaTime);
 
         if (AttackInput)
         {
@@ -114,6 +142,11 @@ public class Player : MonoBehaviour
 
     public void LateUpdate()
     {
+        if (!IsLocalPlayer)
+        {
+            return;
+        }
+
         float deltaTime = Time.deltaTime;
         Transform cameraTarget = playerCharacter.GetCameraTarget();
         CharacterState state = playerCharacter.GetState();
@@ -132,6 +165,30 @@ public class Player : MonoBehaviour
         JumpInput = false;
         InputCrouch = false;
         ReloadInput = false;
+    }
+
+    private void MakeRemote()
+    {
+        TagChildrenRecursive(gameObject);
+
+        GetComponentInChildren<Camera>().enabled = false;
+        GetComponentInChildren<AudioListener>().enabled = false;
+        GetComponentInChildren<KinematicCharacterMotor>().enabled = false;
+        GetComponentInChildren<PlayerCharacter>().enabled = false;
+        GetComponentInChildren<Weapon>().enabled = false;
+
+        GameObject.FindGameObjectWithTag("MainMenuCamera").SetActive(false);
+    }
+
+    private void TagChildrenRecursive(GameObject obj)
+    {
+        obj.tag = "Remote Player";
+        for(int i = 0; i < obj.transform.childCount; i++)
+        {
+            Transform Go = obj.transform.GetChild(i);
+
+            TagChildrenRecursive(Go.gameObject);
+        }
     }
 
     private void RequestAttack()
