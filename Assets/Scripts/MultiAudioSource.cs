@@ -1,7 +1,8 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
-public class MultiAudioSource : MonoBehaviour
+public class MultiAudioSource : NetworkBehaviour
 {
     private int _neededSources;
     
@@ -53,8 +54,8 @@ public class MultiAudioSource : MonoBehaviour
             }
         }
 
-        Debug.LogWarning("No available audio sources! " + gameObject.name);
-        return null;
+        AddSource();
+        return GetAvailableSource();
     }
 
     public void PlaySound(AudioClip clip, int volume, int pitchMin, int pitchMax)

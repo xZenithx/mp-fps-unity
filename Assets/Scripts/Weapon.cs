@@ -1,7 +1,8 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
-public class Weapon : MonoBehaviour
+public class Weapon : NetworkBehaviour
 {
 	[SerializeField] private GunData gunData;
     [SerializeField] private Transform gunMuzzle;
@@ -11,10 +12,17 @@ public class Weapon : MonoBehaviour
     private MultiAudioSource multiAudioSource;
     private float lastTimeShot;
 
-    private void Awake()
+    public override void OnNetworkSpawn()
     {
+        if (!IsServer)
+        {
+            return;
+        }
+        // Create a new instance of the gun data to avoid modifying the original data
+        gunData = Instantiate(gunData);
+
         gunData.reloading = false;
-        gunData.currentAmmo = gunData.magSize;
+        gunData.currentAmmo.Value = gunData.magSize;
 
         multiAudioSource = GetComponent<MultiAudioSource>();
 
@@ -35,14 +43,15 @@ public class Weapon : MonoBehaviour
         return true;
     }
 
-    public void Shoot()
+    [ServerRpc]
+    public void ShootServerRpc()
     {
         if (!CanShoot()) return;
         lastTimeShot = Time.time;
 
-        if (gunData.currentAmmo <= 0)
+        if (gunData.currentAmmo.Value <= 0)
         {
-            EmptySound();
+            EmptySoundServerRpc();
             return;
         }
 
@@ -55,21 +64,23 @@ public class Weapon : MonoBehaviour
             Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 3f);
         }
 
-        gunData.currentAmmo--;
-        OnGunShot();
+        gunData.currentAmmo.Value--;
+        ShootSoundServerRpc();
     }
 
     private void OnGunShot()
     {
-        ShootSound();
+        ShootSoundServerRpc();
     }
 
-    public void StartReload()
+    [ServerRpc]
+    public void StartReloadServerRpc()
     {
+        if (!IsServer) return;
         if (gunData.reloading) return;
-        if (gunData.currentAmmo == gunData.magSize) return;
+        if (gunData.currentAmmo.Value == gunData.magSize) return;
 
-        ReloadSound();
+        ReloadSoundServerRpc();
         StartCoroutine(Reload());
     }
 
@@ -90,24 +101,27 @@ public class Weapon : MonoBehaviour
         }
         weaponMesh.SetLocalPositionAndRotation(originalPosition, originalRotation);
         gunData.reloading = false;
-        gunData.currentAmmo = gunData.magSize;
+        gunData.currentAmmo.Value = gunData.magSize;
     }
 
-    private void ShootSound()
+    [ServerRpc]
+    private void ShootSoundServerRpc()
     {
         if (gunData.shotSound == null) return;
 
         multiAudioSource.PlaySound(gunData.shotSound, gunData.shotSoundVolume, gunData.shotSoundPitchMin, gunData.shotSoundPitchMax);
     }
 
-    private void ReloadSound()
+    [ServerRpc]
+    private void ReloadSoundServerRpc()
     {
         if (gunData.reloadSound == null) return;
 
         multiAudioSource.PlaySound(gunData.reloadSound, gunData.reloadSoundVolume, gunData.reloadSoundPitchMin, gunData.reloadSoundPitchMax);
     }
 
-    public void EmptySound()
+    [ServerRpc]
+    public void EmptySoundServerRpc()
     {
         if (gunData.emptySound == null) return;
 

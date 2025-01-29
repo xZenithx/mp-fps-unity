@@ -14,9 +14,9 @@ public class DamageManager : MonoBehaviour
 
     public void DealDamage(GameObject target, GameObject source, float damage)
     {
-        if (target.TryGetComponent<IHealth>(out var healthManager))
+        if (target.TryGetComponent<PlayerHealth>(out var healthManager))
         {
-            healthManager.TakeDamage(new DamageData()
+            healthManager.TakeDamageServerRpc(new DamageData()
             {
                 Source = source,
                 Damage = damage

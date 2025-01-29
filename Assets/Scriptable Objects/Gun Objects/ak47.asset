@@ -15,7 +15,7 @@ MonoBehaviour:
   name: AK-47
   damage: 22
   maxDistance: 200
-  currentAmmo: 26
+  currentAmmo: 31
   magSize: 31
   maxAmmo: 9999
   fireRate: 600
@@ -23,13 +23,13 @@ MonoBehaviour:
   reloading: 0
   shotSound: {fileID: 8300000, guid: cbe7625a97c21114989540135f9632d4, type: 3}
   shotSoundVolume: 40
-  shotSoundPitchMin: 95
-  shotSoundPitchMax: 100
+  shotSoundPitchMin: 90
+  shotSoundPitchMax: 110
   reloadSound: {fileID: 8300000, guid: 8ff26cff96fa65e43bb73adb5b5cd2f0, type: 3}
   reloadSoundVolume: 100
   reloadSoundPitchMin: 95
-  reloadSoundPitchMax: 100
-  emptySound: {fileID: 0}
+  reloadSoundPitchMax: 105
+  emptySound: {fileID: 8300000, guid: 8b71077372e71a545a5e0c241b79dc61, type: 3}
   emptySoundVolume: 100
   emptySoundPitchMin: 95
-  emptySoundPitchMax: 100
+  emptySoundPitchMax: 105

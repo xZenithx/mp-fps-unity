@@ -13,7 +13,6 @@ public class RelayManager : MonoBehaviour
 {
     [SerializeField] private TMP_Text joinCodeText;
     [SerializeField] private TMP_InputField inputField;
-
     public async void Start()
     {
         await UnityServices.InitializeAsync();
@@ -33,7 +32,7 @@ public class RelayManager : MonoBehaviour
         {
             inputField.text = "";
 
-            GameObject.FindGameObjectWithTag("Pause Menu").SetActive(false);
+            PauseManager.Instance.DisablePauseMenu();
         }
     }
 
@@ -44,14 +43,23 @@ public class RelayManager : MonoBehaviour
         if (joinCode != null)
         {
             joinCodeText.text = joinCode;
-            GameObject.FindGameObjectWithTag("Pause Menu").SetActive(false);
+
+            PauseManager.Instance.DisablePauseMenu();
         }
     }
 
     private async Task<string> StartHostWithRelay(int maxConnections = 50)
     {
-        Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxConnections);
-
+        Allocation allocation;
+        try 
+        {
+            allocation = await RelayService.Instance.CreateAllocationAsync(maxConnections);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError(e.Message);
+            return null;
+        }
         RelayServerData serverData = AllocationUtils.ToRelayServerData(allocation, "dtls");
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(serverData);
 
@@ -62,7 +70,16 @@ public class RelayManager : MonoBehaviour
 
     private async Task<bool> StartClientWithRelay(string joinCode)
     {
-        JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+        JoinAllocation joinAllocation;
+        try
+        {
+            joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError(e.Message);
+            return false;
+        }
 
         RelayServerData serverData = AllocationUtils.ToRelayServerData(joinAllocation, "dtls");
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(serverData);

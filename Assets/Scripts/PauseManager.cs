@@ -2,13 +2,19 @@ using UnityEngine;
 
 public class PauseManager : MonoBehaviour
 {
+    public static PauseManager Instance { get; private set; }
     public GameObject PauseMenu;
 
-    void Start()
+    void Awake()
     {
         PauseMenu = GameObject.FindGameObjectWithTag("Pause Menu");
 
+        DontDestroyOnLoad(PauseMenu.transform.parent);
+        DontDestroyOnLoad(gameObject);
+
         EnablePauseMenu();
+
+        Instance = this;
     }
 
     public void EnablePauseMenu()

@@ -13,6 +13,7 @@ TagManager:
   - Pause Menu
   - MainMenuCamera
   - Pause Manager
+  - Healthbar
   layers:
   - Default
   - TransparentFX
@@ -21,7 +22,7 @@ TagManager:
   - Water
   - UI
   - 
-  - 
+  - Map
   - Weapon
   - 
   - 
