@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using KinematicCharacterController;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Events;
@@ -11,6 +12,7 @@ public class Player : NetworkBehaviour
     [SerializeField] private PlayerCharacter playerCharacter;
     [SerializeField] private PlayerCamera playerCamera;
     [SerializeField] private PlayerHealth playerHealth;
+    [SerializeField] private PlayerWeapon playerWeapon;
     [Space]
     [SerializeField] private CameraSpring cameraSpring;
     [SerializeField] private CameraLean cameraLean;
@@ -19,7 +21,10 @@ public class Player : NetworkBehaviour
     [SerializeField] private StanceVignette stanceVignette;
     [Space]
     [SerializeField] private WeaponSway weaponSway;
-    private Weapon weapon;
+    // private Weapon weapon;
+    private bool isPlayerReady = false;
+    private Camera playerCameraComponent;
+    private PlayerInput playerInput;
 
     /*
         * Input actions
@@ -77,7 +82,17 @@ public class Player : NetworkBehaviour
     /*
         * Unity methods
     */
-    // public void Start()
+    
+    public UnityEvent OnRespawnRequested = new();
+
+    private void Awake()
+    {
+        if (IsOwner && PlayerManager.Instance != null)
+        {
+            PlayerManager.Instance.InitializeLocalPlayer(this);
+        }
+    }
+
     public override void OnNetworkSpawn()
     {
         if (!IsLocalPlayer)
@@ -87,26 +102,81 @@ public class Player : NetworkBehaviour
             return;
         }
 
-        GetComponent<PlayerInput>().enabled = true;
+        MakeLocalPlayer();
+    }
+    
+    public async Task<bool> WaitForPlayerReady()
+    {
+        while (!isPlayerReady)
+        {
+            await Task.Yield();
+        }
 
-        Cursor.lockState = CursorLockMode.Locked;
+        return true;
+    }
 
+    private void MakeLocalPlayer()
+    {
         playerCharacter.Initialize();
         playerCamera.Initialize(playerCharacter.GetCameraTarget());
+        playerWeapon.Initialize();
+        playerHealth.Initialize();
         cameraSpring.Initialize();
         cameraLean.Initialize();
         stanceVignette.Initialize(volume.profile);
+        playerCameraComponent = playerCamera.GetComponentInChildren<Camera>();
+        playerInput = GetComponent<PlayerInput>();
 
-        SubscribeToEvents();
-    }
-    private void SubscribeToEvents()
-    {
+        gameObject.tag = "LocalPlayer";
+
+        GetComponentInChildren<Camera>().enabled = false;
+        GetComponentInChildren<AudioListener>().enabled = false;
         
+        playerInput.enabled = true;
+        playerInput.DeactivateInput();
+
+        playerHealth.OnDeath.AddListener(OnDeath);
+
+        isPlayerReady = true;
+    }
+
+    private void MakeRemote()
+    {
+        TagChildrenRecursive(gameObject);
+
+        GetComponentInChildren<Camera>().enabled = false;
+        GetComponentInChildren<AudioListener>().enabled = false;
+        GetComponentInChildren<KinematicCharacterMotor>().enabled = false;
+        GetComponentInChildren<PlayerCharacter>().enabled = false;
+        GetComponentInChildren<PlayerWeapon>().enabled = false;
+    }
+
+    private void TagChildrenRecursive(GameObject obj)
+    {
+        obj.tag = "Remote Player";
+        for(int i = 0; i < obj.transform.childCount; i++)
+        {
+            Transform Go = obj.transform.GetChild(i);
+
+            TagChildrenRecursive(Go.gameObject);
+        }
+    }
+
+    public void OnDeath()
+    {
+        Debug.Log("Player.OnDeath: Deactivating input");
+        playerInput.DeactivateInput();
+    }
+
+    public void OnSpawn()
+    {
+        Debug.Log("Player.OnSpawn: Activating input");
+        playerInput.ActivateInput();
     }
 
     public void Update()
     {
-        if (!IsLocalPlayer)
+        if (!isPlayerReady || !playerHealth.IsAlive())
         {
             return;
         }
@@ -120,7 +190,6 @@ public class Player : NetworkBehaviour
         CameraInput cameraInput = new()
         {
             Look = lookInput,
-            weapon = weapon
         };
         playerCamera.UpdateRotation(cameraInput);
 
@@ -138,25 +207,20 @@ public class Player : NetworkBehaviour
 
         weaponSway.UpdateSway(lookInput, deltaTime);
 
-        if (isPaused)
+        // Get weapon input and update it
+        PlayerWeaponInput weaponInput = new()
         {
-            return;
-        }
-
-        if (AttackInput)
-        {
-            RequestAttack();
-        }
-
-        if (ReloadInput)
-        {
-            RequestReload();
-        }
+            Fire = AttackInput,
+            Reload = ReloadInput,
+            SwitchWeapon = 0,
+            Camera = playerCameraComponent
+        };
+        playerWeapon.UpdateWeapon(weaponInput);
     }
 
     public void LateUpdate()
     {
-        if (!IsLocalPlayer)
+        if (!isPlayerReady)
         {
             return;
         }
@@ -166,6 +230,7 @@ public class Player : NetworkBehaviour
         CharacterState state = playerCharacter.GetState();
 
         playerCamera.UpdatePosition(cameraTarget);
+        playerHealth.UpdateHealthSlider();
         cameraSpring.UpdateSpring(deltaTime, cameraTarget.up);
         cameraLean.UpdateLean
         (
@@ -179,61 +244,10 @@ public class Player : NetworkBehaviour
         JumpInput = false;
         InputCrouch = false;
         ReloadInput = false;
-    }
 
-    private void MakeRemote()
-    {
-        TagChildrenRecursive(gameObject);
-
-        GetComponentInChildren<Camera>().enabled = false;
-        GetComponentInChildren<AudioListener>().enabled = false;
-        GetComponentInChildren<KinematicCharacterMotor>().enabled = false;
-        GetComponentInChildren<PlayerCharacter>().enabled = false;
-        GetComponentInChildren<Weapon>().enabled = false;
-
-        GameObject.FindGameObjectWithTag("MainMenuCamera").SetActive(false);
-    }
-
-    private void TagChildrenRecursive(GameObject obj)
-    {
-        obj.tag = "Remote Player";
-        for(int i = 0; i < obj.transform.childCount; i++)
-        {
-            Transform Go = obj.transform.GetChild(i);
-
-            TagChildrenRecursive(Go.gameObject);
-        }
-    }
-
-    private void RequestAttack()
-    {
-        if (weapon == null)
-        {
-            weapon = GetComponentInChildren<Weapon>();
-        }
-        
-        if (weapon == null)
-        {
-            return;
-        }
-
-        weapon.ShootServerRpc();
-    }
-
-    private void RequestReload()
-    {
-        if (weapon == null)
-        {
-            weapon = GetComponentInChildren<Weapon>();
-        }
-        
-        if (weapon == null)
-        {
-            return;
-        }
-
-        weapon.StartReloadServerRpc();
+        AttackInput = false;
     }
 
     public PlayerHealth GetPlayerHealth() => playerHealth;
+    public void SetPosition(Vector3 position) => playerCharacter.SetPosition(position);
 }

@@ -4,16 +4,18 @@
 TagManager:
   serializedVersion: 3
   tags:
-  - CinemachineCamera
-  - RightHandPos
-  - LeftHandPos
-  - CameraTarget
   - WeaponModel
   - Remote Player
-  - Pause Menu
-  - MainMenuCamera
   - Pause Manager
   - Healthbar
+  - SpawnPoints
+  - Pause Menu
+  - CameraTarget
+  - LocalPlayer
+  - MainMenuCamera
+  - Death Camera
+  - Map Cameras
+  - Initial Spawnpoint
   layers:
   - Default
   - TransparentFX
@@ -24,7 +26,7 @@ TagManager:
   - 
   - Map
   - Weapon
-  - 
+  - Player
   - 
   - 
   - 

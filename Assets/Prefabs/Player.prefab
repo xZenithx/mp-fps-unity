@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 318999978862926867}
   - component: {fileID: 2165595376668572268}
   - component: {fileID: 6006255943709622112}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Camera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -94,7 +94,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1023003212496120113}
   - component: {fileID: 1570029632592156464}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -163,7 +163,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5854437572950158885}
   - component: {fileID: 1212793184836177161}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Spring
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -213,7 +213,7 @@ GameObject:
   - component: {fileID: 4054009307838852708}
   - component: {fileID: 300254385305343636}
   - component: {fileID: 7444460625236796543}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Capsule
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -298,7 +298,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7387204464930432050}
   - component: {fileID: 1709199389972629825}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Stance Vignette
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -348,8 +348,8 @@ GameObject:
   - component: {fileID: 5983270986132700189}
   - component: {fileID: 877273302004816517}
   - component: {fileID: 5083788133058184479}
-  m_Layer: 0
-  m_Name: Charater
+  m_Layer: 9
+  m_Name: Character
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -385,6 +385,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   root: {fileID: 1023003212496120113}
+  cameraTarget: {fileID: 9060818285808587053}
   walkSpeed: 20
   walkResponse: 25
   crouchSpeed: 7
@@ -435,7 +436,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5776846475712265569}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d1bc5515e3ab954e80599c538834774, type: 3}
   m_Name: 
@@ -516,7 +517,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8034180899259652101}
   - component: {fileID: 9118010937278946943}
-  m_Layer: 8
+  m_Layer: 9
   m_Name: Weapon Holder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -564,11 +565,11 @@ GameObject:
   - component: {fileID: 1272366786926349346}
   - component: {fileID: 6044730796546137777}
   - component: {fileID: 7044064539067983214}
-  - component: {fileID: 1212376778125294721}
   - component: {fileID: 5284159461630678861}
-  m_Layer: 0
+  - component: {fileID: 1212376778125294721}
+  m_Layer: 9
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: LocalPlayer
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -603,7 +604,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3332174192
+  GlobalObjectIdHash: 3213743101
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -632,11 +633,15 @@ MonoBehaviour:
   playerCharacter: {fileID: 2011306540864917069}
   playerCamera: {fileID: 2165595376668572268}
   playerHealth: {fileID: 7044064539067983214}
+  playerWeapon: {fileID: 5284159461630678861}
   cameraSpring: {fileID: 1212793184836177161}
   cameraLean: {fileID: 6386618380625483204}
   volume: {fileID: 8865193764653488481}
   stanceVignette: {fileID: 1709199389972629825}
   weaponSway: {fileID: 9118010937278946943}
+  OnRespawnRequested:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &7044064539067983214
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -650,12 +655,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  displayHealth: 0
+  _health:
+    m_InternalValue: 0
+  _maxHealth:
+    m_InternalValue: 0
   OnHealthChanged:
     m_PersistentCalls:
       m_Calls: []
   OnDeath:
     m_PersistentCalls:
       m_Calls: []
+  HealthSlider: {fileID: 0}
+--- !u!114 &5284159461630678861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5970547925393464084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ef8ba5cf0918f74384ec3718f8c7b1c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  weaponSwitchTime: 0.5
+  weaponSwitchDelay: 0.5
+  weaponLayerMask:
+    serializedVersion: 2
+    m_Bits: 640
+  weaponHolder: {fileID: 5919341024162948456}
 --- !u!114 &1212376778125294721
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -878,22 +908,6 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 6573737461872339058}
---- !u!114 &5284159461630678861
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5970547925393464084}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2ef8ba5cf0918f74384ec3718f8c7b1c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  weaponSwitchTime: 0.5
-  weaponSwitchDelay: 0.5
-  weaponHolder: {fileID: 0}
 --- !u!1 &6222338433923319807
 GameObject:
   m_ObjectHideFlags: 0
@@ -903,7 +917,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9060818285808587053}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Camera Target
   m_TagString: CameraTarget
   m_Icon: {fileID: 0}
@@ -938,7 +952,7 @@ GameObject:
   - component: {fileID: 6275711687615747553}
   - component: {fileID: 1329930360178848025}
   - component: {fileID: 3457986774263992613}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Main Camera
   m_TagString: MainCamera
   m_Icon: {fileID: 0}
@@ -997,7 +1011,7 @@ Camera:
   field of view: 60
   orthographic: 0
   orthographic size: 5
-  m_Depth: 0
+  m_Depth: 100
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -1134,7 +1148,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3821206500504596541}
   - component: {fileID: 6386618380625483204}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Lean
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1184,7 +1198,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5798457956742001770}
   - component: {fileID: 8865193764653488481}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Volume
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1232,7 +1246,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6477719816914250971}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: FX
   m_TagString: Untagged
   m_Icon: {fileID: 0}

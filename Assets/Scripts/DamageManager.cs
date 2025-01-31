@@ -16,7 +16,7 @@ public class DamageManager : MonoBehaviour
     {
         if (target.TryGetComponent<PlayerHealth>(out var healthManager))
         {
-            healthManager.TakeDamageServerRpc(new DamageData()
+            healthManager.TakeDamageServer(new DamageData()
             {
                 Source = source,
                 Damage = damage

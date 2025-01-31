@@ -2,43 +2,90 @@ using UnityEngine;
 using UnityEngine.Events;
 using Unity.Netcode;
 using UnityEngine.UI;
+using System.Threading.Tasks;
 
 public class PlayerHealth : NetworkBehaviour
 {
-    public float Health => _health.Value;
-    private readonly NetworkVariable<float> _health = new();
-    public float MaxHealth => _maxHealth.Value;
-    private readonly NetworkVariable<float> _maxHealth = new();
+    [SerializeField] private float displayHealth;
+
+    public NetworkVariable<float> _health = new(
+        readPerm: NetworkVariableReadPermission.Everyone, 
+        writePerm: NetworkVariableWritePermission.Server
+    );
+
+    public NetworkVariable<float> _maxHealth = new(
+        readPerm: NetworkVariableReadPermission.Everyone,
+        writePerm: NetworkVariableWritePermission.Server
+    );
 
     public UnityEvent<float> OnHealthChanged;
     public UnityEvent OnDeath;
 
+    public bool IsAlive() => _health.Value > 0;
+
+    [SerializeField] private Slider HealthSlider;
+    private NetworkObject _networkObject;
+
     public override void OnNetworkSpawn()
     {
-        if (!IsSessionOwner)
+        if (IsServer || IsHost)
         {
-            return;
+            _networkObject = GetComponent<NetworkObject>();
         }
-
-        GameManager gameManager = GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>();
-
-        SetMaxHealthServerRpc(
-            gameManager.GetPlayerHealth()
-        );
-        SetHealthServerRpc(
-            gameManager.GetPlayerHealth()
-        );
-
-        Slider healthSlider = GameObject.FindGameObjectWithTag("HealthSlider").GetComponent<Slider>();
-        _health.OnValueChanged += (prev, current) => {
-            healthSlider.value = GetHealthPercentage();
-        };
+        if (IsClient)
+        {
+            _health.OnValueChanged += (_, current) => 
+            {
+                UpdateHealthSlider();
+                displayHealth = current;
+            };
+        }
     }
 
-    [ServerRpc]
+    public void Initialize()
+    {
+        if (IsOwner)
+        {
+            OnDeath.AddListener(() =>
+            {
+                PlayerManager.Instance.OpenRespawnMenu();
+            });
+
+            // _health.OnValueChanged += (_, current) => 
+            // {
+            //     HealthSlider.value = GetHealthPercentage();
+            //     displayHealth = current;
+            // };
+
+            _ = WaitForHealthSlider();
+        }
+    }
+
+    private async Task<bool> WaitForHealthSlider()
+    {
+        while (GameObject.FindGameObjectWithTag("Healthbar") == null)
+        {
+            await Task.Yield();
+        }
+
+        HealthSlider = GameObject.FindGameObjectWithTag("Healthbar").GetComponent<Slider>();
+        UpdateHealthSlider();
+        return true;
+    }
+
+    public void UpdateHealthSlider()
+    {
+        if (HealthSlider == null) return;
+
+        HealthSlider.value = GetHealthPercentage();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
     public void SetHealthServerRpc(float health)
     {
-        _health.Value = Mathf.Clamp(health, 0, MaxHealth);
+        if (!IsServer && !IsHost) return;
+
+        _health.Value = Mathf.Clamp(health, 0, _maxHealth.Value);
         OnHealthChanged.Invoke(_health.Value);
         if (_health.Value <= 0)
         {
@@ -46,25 +93,86 @@ public class PlayerHealth : NetworkBehaviour
         }
     }
 
-    public float GetHealth() => Health;
+    public float GetHealth() => _health.Value;
     
-    [ServerRpc]
+    [ServerRpc(RequireOwnership = false)]
     public void SetMaxHealthServerRpc(float maxHealth)
     {
+        if (!IsServer && !IsHost) return;
+
         _maxHealth.Value = maxHealth;
     }
 
-    public float GetMaxHealth() => MaxHealth;
-    public float GetHealthPercentage() => Health / MaxHealth;
+    public float GetMaxHealth() => _maxHealth.Value;
+    public float GetHealthPercentage() => _health.Value / _maxHealth.Value;
 
-    [ServerRpc]
-    public void TakeDamageServerRpc(DamageData data)
+    public void TakeDamageServer(DamageData data)
     {
-        _health.Value -= data.Damage;
-        OnHealthChanged.Invoke(_health.Value);
-        if (_health.Value <= 0)
+        if (!IsServer && !IsHost) return;
+
+        try
         {
-            OnDeath.Invoke();
+            NetworkObject sourceNetworkObject = data.Source;
+            NetworkObject victimNetworkObject = GetComponent<NetworkObject>();
+
+
+            Debug.Log($"Server> {victimNetworkObject} took {data.Damage} damage from {sourceNetworkObject}");
+
+            _health.Value -= data.Damage;
+            OnHealthChanged.Invoke(_health.Value);
+            if (_health.Value <= 0)
+            {
+                OnDeath.Invoke();
+                OnDeathServer(_networkObject.OwnerClientId);
+            }
+        
+
+            ClientRpcParams clientRpcParams = new()
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[]{_networkObject.OwnerClientId}
+                }
+            };
+            TakeDamageClientRpc(_health.Value, clientRpcParams);
         }
+        catch (System.Exception e)
+        {
+            Debug.Log(e);
+        }
+    }
+
+    [ClientRpc]
+    public void TakeDamageClientRpc(float newHealth, ClientRpcParams clientRpcParams = default)
+    {
+        if (!IsOwner) return;
+        Debug.Log("Client> TakeDamageClientRpc: newHealth, " + newHealth);
+
+        OnHealthChanged.Invoke(newHealth);
+    }
+
+    public void OnDeathServer(ulong clientId)
+    {
+        Debug.Log("Server> OnDeathServer");
+        if (!IsServer) return;
+
+        ClientRpcParams clientRpcParams = new()
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new ulong[]{clientId}
+            }
+        };
+        DeathClientRpc(clientRpcParams);
+    }
+
+    [ClientRpc]
+    public void DeathClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        Debug.Log($"Client> DeathClientRpc {IsOwner} {IsClient} {IsServer} {IsHost}");
+        if (IsServer && !IsHost) return;
+        Debug.Log(OnDeath.GetPersistentEventCount());
+
+        OnDeath.Invoke();
     }
 }

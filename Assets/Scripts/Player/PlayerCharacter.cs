@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using KinematicCharacterController;
 using UnityEngine;
 
@@ -32,10 +33,13 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 {
     
     private KinematicCharacterMotor motor;
+    private Player player;
     [SerializeField] private Transform root;
     [Space]
-    private Transform cameraTarget;
+    [Header("Camera Settings")]
+    [SerializeField] private Transform cameraTarget;
     [Space]
+    [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 20f;
     [SerializeField] private float walkResponse = 25f;
     [SerializeField] private float crouchSpeed = 7f;
@@ -84,8 +88,9 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public void Initialize()
     {
         motor = GetComponent<KinematicCharacterMotor>();
+        player = GetComponentInParent<Player>();
         motor.CharacterController = this;
-        cameraTarget = GameObject.FindGameObjectWithTag("CameraTarget").transform;
+        motor.enabled = true;
         _state.Stance = Stance.Stand;
         _lastState = _state;
         _uncrouchOverlapResults = new Collider[8];
@@ -435,8 +440,20 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     public CharacterState GetState() => _state;
     public CharacterState GetLastState() => _lastState;
 
-    public void SetPosition(Vector3 position, bool killVelocity = true)
+    private async Task<bool> WaitForPlayerReference()
     {
+        while (player == null)
+        {
+            await Task.Yield();
+        }
+
+        return true;
+    }
+    public async void SetPosition(Vector3 position, bool killVelocity = true)
+    {
+        await WaitForPlayerReference();
+        await player.WaitForPlayerReady();
+
         motor.SetPosition(position);
         if (killVelocity)
         {

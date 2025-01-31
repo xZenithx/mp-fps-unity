@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 [CustomEditor(typeof(MapManager))]
 public class MapManagerEditor : Editor
@@ -42,19 +43,35 @@ public class MapManagerEditor : Editor
         // Automatically add scenes to Build Settings
         AddScenesToBuildSettings(mapsFolderPath);
     }
-
     private void AddScenesToBuildSettings(string folderPath)
     {
-        List<EditorBuildSettingsScene> buildScenes = new List<EditorBuildSettingsScene>();
+        // Get existing build scenes
+        List<EditorBuildSettingsScene> buildScenes = 
+            new(EditorBuildSettings.scenes);
+
+        // Track paths to avoid duplicates
+        HashSet<string> existingPaths = new(
+            buildScenes.Select(s => s.path)
+        );
+
+        // Find new scenes to add
         string[] sceneGuids = AssetDatabase.FindAssets("t:Scene", new[] { folderPath });
+        int addedCount = 0;
 
         foreach (string guid in sceneGuids)
         {
             string scenePath = AssetDatabase.GUIDToAssetPath(guid);
-            buildScenes.Add(new EditorBuildSettingsScene(scenePath, true));
+            
+            if (!existingPaths.Contains(scenePath))
+            {
+                buildScenes.Add(new EditorBuildSettingsScene(scenePath, true));
+                addedCount++;
+                existingPaths.Add(scenePath);
+            }
         }
 
+        // Update build settings
         EditorBuildSettings.scenes = buildScenes.ToArray();
-        Debug.Log($"Added {buildScenes.Count} scenes to Build Settings.");
+        Debug.Log($"Added {addedCount} new scenes. Total in build: {buildScenes.Count}");
     }
 }

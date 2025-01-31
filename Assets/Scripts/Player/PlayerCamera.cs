@@ -3,7 +3,6 @@ using UnityEngine;
 public struct CameraInput
 {
     public Vector2 Look;
-    public Weapon weapon;
 }
 
 public class PlayerCamera : MonoBehaviour
@@ -14,9 +13,7 @@ public class PlayerCamera : MonoBehaviour
 
 	public void Initialize(Transform target)
     {
-        transform.position = target.position;
-        transform.rotation = target.rotation;
-
+        transform.SetPositionAndRotation(target.position, target.rotation);
         transform.eulerAngles = _eulerAngles = target.eulerAngles;
     }
 

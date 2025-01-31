@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
-using Eflatun.SceneReference;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 
 public class MapManager : NetworkBehaviour
@@ -13,35 +13,51 @@ public class MapManager : NetworkBehaviour
     private Scene m_loadedScene;
     private bool m_isSceneOperationInProgress;
     private bool m_hasLoadedInitialScene;
+    private bool m_hasLoadedMap = false;
+
+    public bool HasLoadedMap => m_hasLoadedMap;
 
     public string[] Maps;
 
-    void Awake()
+    public UnityEvent<string> OnMapLoaded;
+
+    public void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        Instance.OnMapLoaded = new UnityEvent<string>();
     }
+
     public override void OnNetworkSpawn()
     {
-        if (IsServer)
-        {
-            
-        }
+        Debug.Log("MapManager spawned!");
 
         NetworkManager.Singleton.SceneManager.OnSceneEvent += SceneManager_OnSceneEvent;
     }
 
+    public async Task<bool> WaitForMapAsync()
+    {
+        while (!Instance.HasLoadedMap)
+        {
+            await Task.Yield();
+        }
 
+        Debug.Log("<Task> Map loaded!");
+        return true;
+    }
 
-    public bool IsMapLoaded => m_loadedScene != null && m_loadedScene.IsValid() && m_loadedScene.isLoaded;
+    public bool IsMapLoaded => Instance.m_loadedScene != null && Instance.m_loadedScene.IsValid() && Instance.m_loadedScene.isLoaded;
     
     public void LoadRandomMap()
     {
-        LoadMap(Maps[Random.Range(0, Maps.Length)]);
+        LoadMap(Instance.Maps[Random.Range(0, Instance.Maps.Length)]);
     }
 
     public async void LoadMap(string mapName)
     {
-        if (m_isSceneOperationInProgress)
+        if (Instance.m_isSceneOperationInProgress)
         {
             Debug.LogWarning("Scene operation already in progress!");
             return;
@@ -61,33 +77,30 @@ public class MapManager : NetworkBehaviour
         }
 
         Debug.Log($"Loading the {mapName} scene.");
-        m_isSceneOperationInProgress = true; // Set flag
+        Instance.m_isSceneOperationInProgress = true; // Set flag
 
-        MapName = mapName;
+        Instance.MapName = mapName;
 
         var status = NetworkManager.SceneManager.LoadScene(
-            mapName, 
+            Instance.MapName, 
             LoadSceneMode.Additive
         );
 
         CheckStatus(status, true);
-
-        await Task.Delay(5000);
-        LoadMap(MapName);
     }
 
     public void UnloadMap()
     {
-        if (!IsServer || !IsSpawned || !m_loadedScene.IsValid() || !m_loadedScene.isLoaded)
+        if (!IsServer || !IsSpawned || !Instance.m_loadedScene.IsValid() || !Instance.m_loadedScene.isLoaded)
         {
             return;
         }
         // Unload the map
-        Debug.Log($"Unloading the {m_loadedScene.name} scene.");
-        SceneEventProgressStatus status = NetworkManager.Singleton.SceneManager.UnloadScene(m_loadedScene);
+        Debug.Log($"Unloading the {Instance.m_loadedScene.name} scene.");
+        SceneEventProgressStatus status = NetworkManager.Singleton.SceneManager.UnloadScene(Instance.m_loadedScene);
         CheckStatus(status, false);
 
-        m_loadedScene = default;
+        Instance.m_loadedScene = default;
     }
 
     private async void CheckStatus(SceneEventProgressStatus status, bool isLoading = true)
@@ -100,22 +113,29 @@ public class MapManager : NetworkBehaviour
             Debug.LogWarning($"Another scene operation is already in progress. Retrying...");
             // Optionally retry after a delay
             await Task.Delay(1000);
-            LoadMap(MapName); // Retry load
+            LoadMap(Instance.MapName); // Retry load
         }
         else if (status != SceneEventProgressStatus.Started)
         {
-            Debug.LogWarning($"Failed to {sceneEventAction} {MapScene.name}: {status}");
+            Debug.LogWarning($"Failed to {sceneEventAction} {Instance.MapScene.name}: {status}");
         }
     }
 
     private bool ServerSideSceneValidation(int sceneIndex, string sceneName, LoadSceneMode loadSceneMode)
     {
         // Allow initial scene load
-        if (!m_hasLoadedInitialScene) return true;
+        if (!Instance.m_hasLoadedInitialScene) return true;
 
         // Block duplicate additive loads
-        return !(sceneName == m_loadedScene.name && loadSceneMode == LoadSceneMode.Additive);
+        return !(sceneName == Instance.m_loadedScene.name && loadSceneMode == LoadSceneMode.Additive);
     }
+
+    // [ClientRpc]
+    // private void OnMapLoadedClientRpc(string mapName)
+    // {
+    //     Debug.Log("OnMapLoadedClientRpc | Map loaded: " + mapName);
+    //     OnMapLoaded.Invoke(mapName);
+    // }
 
     private void SceneManager_OnSceneEvent(SceneEvent sceneEvent)
     {
@@ -124,9 +144,9 @@ public class MapManager : NetworkBehaviour
         {
             case SceneEventType.LoadComplete:
             {
-                if (!m_hasLoadedInitialScene && sceneEvent.SceneName == "GameScene")
+                if (!Instance.m_hasLoadedInitialScene && sceneEvent.SceneName == "GameScene")
                 {
-                    m_hasLoadedInitialScene = true;
+                    Instance.m_hasLoadedInitialScene = true;
                     LoadRandomMap(); // Now load the map additively
 
                     break;
@@ -137,13 +157,16 @@ public class MapManager : NetworkBehaviour
                 {
                     // *** IMPORTANT ***
                     // Keep track of the loaded scene, you need this to unload it
-                    m_loadedScene = sceneEvent.Scene;
-                    Debug.Log(clientOrServer + "> m_loadedScene: " + m_loadedScene.name);
+                    Instance.m_loadedScene = sceneEvent.Scene;
+                    Debug.Log(clientOrServer + "> m_loadedScene: " + Instance.m_loadedScene.name);
                 }
                 Debug.Log($"Loaded the {sceneEvent.SceneName} scene on " +
                     $"{clientOrServer}-({sceneEvent.ClientId}).");
                 
+                Instance.OnMapLoaded.Invoke(sceneEvent.SceneName);
+                // OnMapLoadedClientRpc(sceneEvent.SceneName);
                 m_isSceneOperationInProgress = false; // Reset flag
+                m_hasLoadedMap = true;
                 break;
             }
                 
@@ -151,6 +174,8 @@ public class MapManager : NetworkBehaviour
             {
                 Debug.Log($"Unloaded the {sceneEvent.SceneName} scene on " +
                     $"{clientOrServer}-({sceneEvent.ClientId}).");
+                
+                Instance.m_hasLoadedMap = false;
                 break;
             }
             case SceneEventType.LoadEventCompleted:
