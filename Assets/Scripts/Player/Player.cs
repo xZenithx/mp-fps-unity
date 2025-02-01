@@ -255,7 +255,6 @@ public class Player : NetworkBehaviour
         InputCrouch = false;
         ReloadInput = false;
 
-        AttackInput = false;
         weaponSwitchName = null;
     }
 

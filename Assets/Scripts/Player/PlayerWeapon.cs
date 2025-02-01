@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -20,12 +21,16 @@ public class PlayerWeapon : NetworkBehaviour
     [Header("References")]
     [SerializeField] private GameObject weaponHolder;
 
-    [HideInInspector] public GunData CurrentWeapon;
+    public GunData CurrentWeapon;
     private Vector3 _eyeStartPosition;
     private Vector3 _eyeAngles;
     private float _lastTimeFired;
     private int _currentMagazine;
     private int _magazineSize;
+    private bool _reloading = false;
+    private GameObject _weaponMesh;
+    private GameObject _weaponMeshParent;
+    private GameObject _weaponMuzzle;
     private int _weaponLayer = 0;
 
     public NetworkVariable<FixedString64Bytes> weaponId = new
@@ -45,7 +50,6 @@ public class PlayerWeapon : NetworkBehaviour
             layer >>= 1;
             _weaponLayer++;
         }
-
     }
 
     public void UpdateWeapon(PlayerWeaponInput input)
@@ -73,6 +77,22 @@ public class PlayerWeapon : NetworkBehaviour
         }
     }
 
+    public override void OnNetworkSpawn()
+    {
+        if (IsServer)
+        {
+            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        }
+    }
+
+    private void OnClientConnected(ulong clientId)
+    {
+        if (string.IsNullOrEmpty(weaponId.Value.ToString())) return;
+        Debug.Log($"Giving weapon to {clientId} {weaponId.Value}");
+
+        // Send the new client the current weapon
+        SwitchWeaponServerRpc(weaponId.Value, clientId);
+    }
 
     /*
     * FireWeapon
@@ -80,21 +100,37 @@ public class PlayerWeapon : NetworkBehaviour
 
     private void FireWeapon()
     {
-        if (!IsOwner || CurrentWeapon == null) return;
+        if (!IsOwner || !CanFire()) return;
         
         FireWeaponServerRpc(NetworkManager.Singleton.LocalClientId, _eyeStartPosition, _eyeAngles);
     }
 
     private bool CanFire()
     {
-        Debug.Log($"CanFire {_currentMagazine} {_lastTimeFired} {Time.time} {60 / CurrentWeapon.fireRate}");
-        if (CurrentWeapon == null) return false;
-        Debug.Log($"CanFire CurrentWeapon != null");
-        if (_currentMagazine <= 0) return false;
-        Debug.Log($"CanFire _currentMagazine not empty");
+        // Debug.Log($"CanFire {_currentMagazine} {_lastTimeFired} {Time.time} {60 / CurrentWeapon.fireRate}");
+        if (CurrentWeapon == null) 
+        {
+            return false;
+        }
+
+        if (_reloading) 
+        {
+            return false;
+        }
+
+        if (Time.time - _lastTimeFired < 60 / CurrentWeapon.fireRate) 
+        {
+            return false;
+        }
+        
+        if (_currentMagazine <= 0) {
+            _lastTimeFired = Time.time;
+            EmptySoundClientRpc();
+            return false;
+        };
 
         // fireRate is in shots per minute, so we need to convert it to seconds
-        return Time.time - _lastTimeFired > (60 / CurrentWeapon.fireRate);
+        return true;
     }
 
     [Rpc(SendTo.Server)]
@@ -108,12 +144,14 @@ public class PlayerWeapon : NetworkBehaviour
 
         Debug.Log($"FireWeaponServerRpc client exists {clientId}");
 
+        if (!CanFire()) {
+            return;
+        }
         _lastTimeFired = Time.time;
-        if (!CanFire()) return;
         Debug.Log($"FireWeaponServerRpc CanFire {clientId}");
 
         _currentMagazine--;
-        FireSoundClientRpc();
+        OnFireClientRpc();
 
         Ray ray = new(eyeStartPosition, eyeAngles);
 
@@ -135,12 +173,23 @@ public class PlayerWeapon : NetworkBehaviour
     }
 
     [Rpc(SendTo.Everyone)]
-    private void FireSoundClientRpc()
+    private void OnFireClientRpc()
     {
         if (!IsClient) return;
 
+        _currentMagazine--;
+
         Debug.Log($"{OwnerClientId}: FireSoundClientRpc");
         _dynamicAudioSource.PlaySound(CurrentWeapon.shotSound, CurrentWeapon.shotSoundVolume, CurrentWeapon.shotSoundPitchMin, CurrentWeapon.shotSoundPitchMax);
+    }
+
+    [Rpc(SendTo.Everyone)]
+    private void EmptySoundClientRpc()
+    {
+        if (!IsClient) return;
+
+        Debug.Log($"{OwnerClientId}: EmptySoundClientRpc");
+        _dynamicAudioSource.PlaySound(CurrentWeapon.emptySound, CurrentWeapon.emptySoundVolume, CurrentWeapon.emptySoundPitchMin, CurrentWeapon.emptySoundPitchMax);
     }
 
     /*
@@ -149,6 +198,7 @@ public class PlayerWeapon : NetworkBehaviour
 
     private void ReloadWeapon()
     {
+        if (!IsOwner || _reloading || _currentMagazine == _magazineSize) return;
         Debug.Log($"Reloading weapon! {IsClient} {IsOwner}");
         ReloadWeaponServerRpc(NetworkManager.Singleton.LocalClientId);
 
@@ -158,23 +208,58 @@ public class PlayerWeapon : NetworkBehaviour
     private void ReloadWeaponServerRpc(ulong clientId)
     {
         Debug.Log($"ReloadWeaponServerRpc {clientId}");
-        if (!IsServer) return;
+        if (!IsServer || _reloading) return;
 
         if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client)) return;
 
         if (_currentMagazine == _magazineSize) return;
 
         _currentMagazine = _magazineSize;
-        ReloadSoundClientRpc();
+        OnReloadServer();
+        OnReloadClientRpc();
+    }
+
+    private async void OnReloadServer()
+    {
+        if (!IsServer) return;
+        _reloading = true;
+
+        await Task.Delay((int)CurrentWeapon.reloadTime * 1000);
+
+        _reloading = false;
     }
 
     [Rpc(SendTo.Everyone)]
-    private void ReloadSoundClientRpc()
+    private void OnReloadClientRpc()
     {
         if (!IsClient) return;
 
         Debug.Log($"{OwnerClientId}: ReloadSoundClientRpc");
         _dynamicAudioSource.PlaySound(CurrentWeapon.reloadSound, CurrentWeapon.reloadSoundVolume, CurrentWeapon.reloadSoundPitchMin, CurrentWeapon.reloadSoundPitchMax);
+
+        _currentMagazine = _magazineSize;
+
+        ReloadAsync();
+    }
+    
+    private async void ReloadAsync()
+    {
+        _reloading = true;
+
+        float reloadTime = CurrentWeapon.reloadTime;
+        float elapsedTime = 0f;
+
+        _weaponMesh.transform.GetLocalPositionAndRotation(out Vector3 originalPosition, out Quaternion originalRotation);
+        while (elapsedTime < reloadTime)
+        {
+            float curveValue = CurrentWeapon.reloadCurve.Evaluate(elapsedTime / reloadTime);
+            _weaponMesh.transform.localRotation = Quaternion.Euler(0, 360 * curveValue, 0);
+            elapsedTime += Time.deltaTime;
+            await Task.Yield();
+        }
+        _weaponMesh.transform.SetLocalPositionAndRotation(originalPosition, originalRotation);
+        _reloading = false;
+        // _mag.Value = gunData.magSize;
     }
 
 
@@ -195,40 +280,59 @@ public class PlayerWeapon : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    public void SwitchWeaponServerRpc(string weaponId)
+    public void SwitchWeaponServerRpc(FixedString64Bytes weaponId, ulong clientId)
     {
-        Debug.Log($"{OwnerClientId}: SwitchWeaponServerRpc {weaponId}");
-        if (!IsServer) return;
+        if (!IsServer || string.IsNullOrEmpty(weaponId.ToString())) return;
+        string _weaponId = weaponId.ToString();
+        Debug.Log($"{OwnerClientId}: SwitchWeaponServerRpc {_weaponId}");
 
-        CurrentWeapon = WeaponManager.Instance.GetWeaponDataById(weaponId);
-        _currentMagazine = CurrentWeapon.currentAmmo;
+        CurrentWeapon = WeaponManager.Instance.GetWeaponDataById(_weaponId);
         _magazineSize = CurrentWeapon.magSize;
+        _currentMagazine = _magazineSize;
+
+        this.weaponId.Value = weaponId;
+        SwitchWeaponRpc(weaponId, _magazineSize, _currentMagazine, RpcTarget.Single(clientId, RpcTargetUse.Temp));
+    }
+
+    [Rpc(SendTo.Server)]
+    public void SwitchWeaponServerRpc(FixedString64Bytes weaponId)
+    {
+        if (!IsServer) return;
+        string _weaponId = weaponId.ToString();
+        Debug.Log($"{OwnerClientId}: SwitchWeaponServerRpc {_weaponId}");
+
+        CurrentWeapon = WeaponManager.Instance.GetWeaponDataById(_weaponId);
+        _magazineSize = CurrentWeapon.magSize;
+        _currentMagazine = _magazineSize;
 
         this.weaponId.Value = weaponId;
         
-        SwitchWeaponClientRpc(weaponId);
+        SwitchWeaponRpc(_weaponId, _magazineSize, _currentMagazine, RpcTarget.Everyone);
     }
-
-    [Rpc(SendTo.Everyone)]
-    public void SwitchWeaponClientRpc(string weaponId)
+    
+    [Rpc(SendTo.SpecifiedInParams)]
+    public void SwitchWeaponRpc(FixedString64Bytes weaponId, int magazineSize, int currentMagazine, RpcParams rpcParams = default)
     {
-        Debug.Log($"{OwnerClientId}: SwitchWeaponClientRpc {weaponId}");
         if (!IsClient) return;
+        string _weaponId = weaponId.ToString();
+        Debug.Log($"{OwnerClientId}: SwitchWeaponClientRpc {_weaponId}");
 
-        CurrentWeapon = WeaponManager.Instance.GetWeaponDataById(weaponId);
-        _currentMagazine = CurrentWeapon.currentAmmo;
-        _magazineSize = CurrentWeapon.magSize;
+        CurrentWeapon = WeaponManager.Instance.GetWeaponDataById(_weaponId);
+        _magazineSize = magazineSize;
+        _currentMagazine = currentMagazine;
 
         if (weaponHolder.transform.childCount > 0)
         {
             Destroy(weaponHolder.transform.GetChild(0).gameObject);
         }
 
-        GameObject weaponPrefab = Instantiate(WeaponManager.Instance.GetWeaponPrefabById(weaponId), weaponHolder.transform);
+        GameObject weaponPrefab = Instantiate(WeaponManager.Instance.GetWeaponPrefabById(_weaponId), weaponHolder.transform);
         if (!IsOwner)
         {
             weaponPrefab.transform.SetLocalPositionAndRotation(new Vector3(0.31f, -0.25f, -0.12f), Quaternion.identity);
         }
+
+        GunDataReference gunDataReference = weaponPrefab.GetComponent<GunDataReference>();
+        _weaponMesh = gunDataReference.weaponMesh;
     }
-    
 }

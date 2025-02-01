@@ -41,8 +41,14 @@ public class WeaponManager : MonoBehaviour
 
     public GunData GetWeaponDataById(string weaponId)
     {
-        return WeaponPrefabs.First(w => w.GetComponent<GunDataReference>().gunData.weaponId == weaponId)
+        GunData gunData = WeaponPrefabs.First(w => w.GetComponent<GunDataReference>().gunData.weaponId == weaponId)
             .GetComponent<GunDataReference>().gunData;
+
+        if (gunData == null)
+        {
+            Debug.LogError("Weapon with id " + weaponId + " not found");
+        }
+        return gunData;
     }
 
     public GameObject GetWeaponPrefabById(string weaponId)

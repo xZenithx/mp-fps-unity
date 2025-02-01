@@ -570,6 +570,7 @@ GameObject:
   - component: {fileID: 7044064539067983214}
   - component: {fileID: 5284159461630678861}
   - component: {fileID: 1212376778125294721}
+  - component: {fileID: 7865232278045994808}
   m_Layer: 9
   m_Name: Player
   m_TagString: LocalPlayer
@@ -758,6 +759,7 @@ MonoBehaviour:
         byte0059: 0
         byte0060: 0
         byte0061: 0
+  _dynamicAudioSource: {fileID: 7865232278045994808}
 --- !u!114 &1212376778125294721
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -980,6 +982,20 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 6573737461872339058}
+--- !u!114 &7865232278045994808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5970547925393464084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db426dfb33aebe04ba3a9bdafbcc4d95, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  audioSource: []
 --- !u!1 &6222338433923319807
 GameObject:
   m_ObjectHideFlags: 0

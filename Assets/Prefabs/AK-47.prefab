@@ -46,7 +46,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gunData: {fileID: 11400000, guid: bc65b1f08f56e23449d0c811545e8380, type: 2}
+  weaponMeshParent: {fileID: 7753641084219968203}
   weaponMesh: {fileID: 194647879193880834}
+  weaponMuzzle: {fileID: 8299723141679778981}
 --- !u!1 &7753641084219968203
 GameObject:
   m_ObjectHideFlags: 0

@@ -12,13 +12,14 @@ public class GunData : ScriptableObject
     public float maxDistance;
 
     [Header("Ammo")]
-    public int currentAmmo;
     public int magSize;
     public int maxAmmo = 9999;
 
     [Header("Reload")]
     public float fireRate;
     public float reloadTime;
+    public AnimationCurve reloadCurve;
+
     [HideInInspector]
     public bool reloading;
 

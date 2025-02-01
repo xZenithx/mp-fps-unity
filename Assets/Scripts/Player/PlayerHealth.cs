@@ -24,20 +24,6 @@ public class PlayerHealth : NetworkBehaviour
 
     [SerializeField] private Slider HealthSlider;
 
-    public override void OnNetworkSpawn()
-    {
-        if (IsServer || IsHost)
-        {}
-        if (IsClient)
-        {
-            _health.OnValueChanged += (_, current) => 
-            {
-                Debug.Log("Client> Health changed to " + current);
-                UpdateHealthSlider();
-            };
-        }
-    }
-
     public void Initialize()
     {
         if (IsOwner)
@@ -46,34 +32,38 @@ public class PlayerHealth : NetworkBehaviour
             {
                 PlayerManager.Instance.OpenRespawnMenu();
             });
+            
+            _health.OnValueChanged += (_, current) => 
+            {
+                Debug.Log("Client> Health changed to " + current);
+                UpdateHealthSlider();
+            };
 
-            // _health.OnValueChanged += (_, current) => 
-            // {
-            //     HealthSlider.value = GetHealthPercentage();
-            //     displayHealth = current;
-            // };
-
-            _ = WaitForHealthSlider();
+            WaitForHealthSlider();
         }
     }
 
-    private async Task<bool> WaitForHealthSlider()
+    private async void WaitForHealthSlider()
     {
         while (GameObject.FindGameObjectWithTag("Healthbar") == null)
         {
             await Task.Yield();
         }
 
+        Debug.Log("Client> Found HealthSlider");
         HealthSlider = GameObject.FindGameObjectWithTag("Healthbar").GetComponent<Slider>();
         UpdateHealthSlider();
-        return true;
     }
 
     public void UpdateHealthSlider()
     {
         if (HealthSlider == null) return;
+        float hpPercent = GetHealthPercentage();
+        if (float.IsNaN(hpPercent)) return;
 
-        HealthSlider.value = GetHealthPercentage();
+        hpPercent = Mathf.Clamp(hpPercent, 0, 1);
+
+        HealthSlider.value = hpPercent;
     }
 
     [Rpc(SendTo.Server, RequireOwnership = false)]
@@ -100,7 +90,10 @@ public class PlayerHealth : NetworkBehaviour
     }
 
     public float GetMaxHealth() => _maxHealth.Value;
-    public float GetHealthPercentage() => _health.Value / _maxHealth.Value;
+    public float GetHealthPercentage()
+    {
+        return _health.Value / _maxHealth.Value;
+    }
 
     public void TakeDamageServer(DamageData data)
     {

@@ -16,19 +16,41 @@ MonoBehaviour:
   weaponId: ak47
   damage: 22
   maxDistance: 200
-  currentAmmo:
-    m_InternalValue: 0
   magSize: 31
   maxAmmo: 9999
   fireRate: 600
   reloadTime: 0.7
+  reloadCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   reloading: 0
   shotSound: {fileID: 8300000, guid: cbe7625a97c21114989540135f9632d4, type: 3}
-  shotSoundVolume: 40
-  shotSoundPitchMin: 90
-  shotSoundPitchMax: 110
+  shotSoundVolume: 100
+  shotSoundPitchMin: 98
+  shotSoundPitchMax: 102
   reloadSound: {fileID: 8300000, guid: 8ff26cff96fa65e43bb73adb5b5cd2f0, type: 3}
-  reloadSoundVolume: 100
+  reloadSoundVolume: 300
   reloadSoundPitchMin: 95
   reloadSoundPitchMax: 105
   emptySound: {fileID: 8300000, guid: 8b71077372e71a545a5e0c241b79dc61, type: 3}
