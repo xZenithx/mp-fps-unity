@@ -1527,7 +1527,7 @@ MonoBehaviour:
   MapScene:
     m_Handle: 0
   Maps:
-  - Facility
+  - Dust
   OnMapLoaded:
     m_PersistentCalls:
       m_Calls: []

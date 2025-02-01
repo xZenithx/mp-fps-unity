@@ -331,6 +331,10 @@ public class PlayerWeapon : NetworkBehaviour
         {
             weaponPrefab.transform.SetLocalPositionAndRotation(new Vector3(0.31f, -0.25f, -0.12f), Quaternion.identity);
         }
+        else
+        {
+            weaponPrefab.transform.localScale = new Vector3(50f, 50f, 50f);
+        }
 
         GunDataReference gunDataReference = weaponPrefab.GetComponent<GunDataReference>();
         _weaponMesh = gunDataReference.weaponMesh;

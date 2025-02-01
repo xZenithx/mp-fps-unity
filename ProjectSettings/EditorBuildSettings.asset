@@ -12,8 +12,8 @@ EditorBuildSettings:
     path: Assets/Scenes/GameScene.unity
     guid: e26d01c7d52ef254cb2d2e3c326cf252
   - enabled: 1
-    path: Assets/Scenes/Maps/Facility.unity
-    guid: c954837b9d4d3d74eb4d238b1b126e9d
+    path: Assets/Scenes/Maps/Dust.unity
+    guid: e4b84bc8a720f5e44a9defe3ee39e68a
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
