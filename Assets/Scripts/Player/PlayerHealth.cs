@@ -4,10 +4,9 @@ using Unity.Netcode;
 using UnityEngine.UI;
 using System.Threading.Tasks;
 
+
 public class PlayerHealth : NetworkBehaviour
 {
-    [SerializeField] private float displayHealth;
-
     public NetworkVariable<float> _health = new(
         readPerm: NetworkVariableReadPermission.Everyone, 
         writePerm: NetworkVariableWritePermission.Server
@@ -24,20 +23,17 @@ public class PlayerHealth : NetworkBehaviour
     public bool IsAlive() => _health.Value > 0;
 
     [SerializeField] private Slider HealthSlider;
-    private NetworkObject _networkObject;
 
     public override void OnNetworkSpawn()
     {
         if (IsServer || IsHost)
-        {
-            _networkObject = GetComponent<NetworkObject>();
-        }
+        {}
         if (IsClient)
         {
             _health.OnValueChanged += (_, current) => 
             {
+                Debug.Log("Client> Health changed to " + current);
                 UpdateHealthSlider();
-                displayHealth = current;
             };
         }
     }
@@ -80,7 +76,7 @@ public class PlayerHealth : NetworkBehaviour
         HealthSlider.value = GetHealthPercentage();
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, RequireOwnership = false)]
     public void SetHealthServerRpc(float health)
     {
         if (!IsServer && !IsHost) return;
@@ -95,7 +91,7 @@ public class PlayerHealth : NetworkBehaviour
 
     public float GetHealth() => _health.Value;
     
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, RequireOwnership = false)]
     public void SetMaxHealthServerRpc(float maxHealth)
     {
         if (!IsServer && !IsHost) return;
@@ -123,18 +119,10 @@ public class PlayerHealth : NetworkBehaviour
             if (_health.Value <= 0)
             {
                 OnDeath.Invoke();
-                OnDeathServer(_networkObject.OwnerClientId);
+                OnDeathServer(OwnerClientId);
             }
         
-
-            ClientRpcParams clientRpcParams = new()
-            {
-                Send = new ClientRpcSendParams
-                {
-                    TargetClientIds = new ulong[]{_networkObject.OwnerClientId}
-                }
-            };
-            TakeDamageClientRpc(_health.Value, clientRpcParams);
+            TakeDamageClientRpc(_health.Value, RpcTarget.Single(OwnerClientId, RpcTargetUse.Temp));
         }
         catch (System.Exception e)
         {
@@ -142,8 +130,8 @@ public class PlayerHealth : NetworkBehaviour
         }
     }
 
-    [ClientRpc]
-    public void TakeDamageClientRpc(float newHealth, ClientRpcParams clientRpcParams = default)
+    [Rpc(SendTo.SpecifiedInParams)]
+    public void TakeDamageClientRpc(float newHealth, RpcParams rpcParams = default)
     {
         if (!IsOwner) return;
         Debug.Log("Client> TakeDamageClientRpc: newHealth, " + newHealth);
@@ -156,18 +144,11 @@ public class PlayerHealth : NetworkBehaviour
         Debug.Log("Server> OnDeathServer");
         if (!IsServer) return;
 
-        ClientRpcParams clientRpcParams = new()
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = new ulong[]{clientId}
-            }
-        };
-        DeathClientRpc(clientRpcParams);
+        DeathClientRpc(RpcTarget.Single(clientId, RpcTargetUse.Temp));
     }
 
-    [ClientRpc]
-    public void DeathClientRpc(ClientRpcParams clientRpcParams = default)
+    [Rpc(SendTo.SpecifiedInParams)]
+    public void DeathClientRpc(RpcParams rpcParams = default)
     {
         Debug.Log($"Client> DeathClientRpc {IsOwner} {IsClient} {IsServer} {IsHost}");
         if (IsServer && !IsHost) return;

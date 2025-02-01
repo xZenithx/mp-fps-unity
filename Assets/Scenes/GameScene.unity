@@ -148,6 +148,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72e64347d63c55c4eb216cd332c267fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  WeaponPrefabs:
+  - {fileID: 7554560000172881465, guid: bf599687b6e09e942acbeea26f489c44, type: 3}
 --- !u!4 &241928149
 Transform:
   m_ObjectHideFlags: 0
@@ -503,7 +505,7 @@ RectTransform:
   m_Father: {fileID: 1608063380}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -514,7 +516,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 419830449}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
@@ -1174,7 +1176,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 20, y: 20}
-  m_SizeDelta: {x: 600, y: 40}
+  m_SizeDelta: {x: 750, y: 40}
   m_Pivot: {x: 0, y: 0}
 --- !u!114 &990700362
 MonoBehaviour:
@@ -1223,7 +1225,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 0
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -1272,7 +1274,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1608063379}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b26bc9eb8d33dff448ce2cde200556b5, type: 3}
   m_Name: 
@@ -1285,7 +1287,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1608063379}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 67db9e8f0e2ae9c40bc1e2b64352a6b4, type: 3}
   m_Name: 
@@ -1945,6 +1947,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   playerHealth: 100
+  playerWeapon: AK-47
 --- !u!4 &2135195306
 Transform:
   m_ObjectHideFlags: 0
@@ -1964,11 +1967,11 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 935374486}
   - {fileID: 289766160}
   - {fileID: 576999815}
+  - {fileID: 1821720991}
   - {fileID: 1675024869}
   - {fileID: 292131256}
   - {fileID: 2135195306}
-  - {fileID: 1821720991}
-  - {fileID: 935374486}
   - {fileID: 241928149}

@@ -22,7 +22,7 @@ public class Weapon : NetworkBehaviour
         gunData = Instantiate(gunData);
 
         gunData.reloading = false;
-        gunData.currentAmmo.Value = gunData.magSize;
+        // gunData.currentAmmo.Value = gunData.magSize;
 
         multiAudioSource = GetComponent<MultiAudioSource>();
 
@@ -49,11 +49,11 @@ public class Weapon : NetworkBehaviour
         if (!CanShoot()) return;
         lastTimeShot = Time.time;
 
-        if (gunData.currentAmmo.Value <= 0)
-        {
-            EmptySoundServerRpc();
-            return;
-        }
+        // if (gunData.currentAmmo.Value <= 0)
+        // {
+        //     EmptySoundServerRpc();
+        //     return;
+        // }
 
         Camera playerCamera = Camera.main;
         if (playerCamera == null) return;
@@ -64,7 +64,7 @@ public class Weapon : NetworkBehaviour
             Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 3f);
         }
 
-        gunData.currentAmmo.Value--;
+        // gunData.currentAmmo.Value--;
         ShootSoundServerRpc();
     }
 
@@ -78,7 +78,7 @@ public class Weapon : NetworkBehaviour
     {
         if (!IsServer) return;
         if (gunData.reloading) return;
-        if (gunData.currentAmmo.Value == gunData.magSize) return;
+        // if (gunData.currentAmmo.Value == gunData.magSize) return;
 
         ReloadSoundServerRpc();
         StartCoroutine(Reload());
@@ -101,10 +101,10 @@ public class Weapon : NetworkBehaviour
         }
         weaponMesh.SetLocalPositionAndRotation(originalPosition, originalRotation);
         gunData.reloading = false;
-        gunData.currentAmmo.Value = gunData.magSize;
+        // _mag.Value = gunData.magSize;
     }
 
-    [ServerRpc]
+    [Rpc(SendTo.Server)]
     private void ShootSoundServerRpc()
     {
         if (gunData.shotSound == null) return;
@@ -112,7 +112,7 @@ public class Weapon : NetworkBehaviour
         multiAudioSource.PlaySound(gunData.shotSound, gunData.shotSoundVolume, gunData.shotSoundPitchMin, gunData.shotSoundPitchMax);
     }
 
-    [ServerRpc]
+    [Rpc(SendTo.Server)]
     private void ReloadSoundServerRpc()
     {
         if (gunData.reloadSound == null) return;
@@ -120,7 +120,7 @@ public class Weapon : NetworkBehaviour
         multiAudioSource.PlaySound(gunData.reloadSound, gunData.reloadSoundVolume, gunData.reloadSoundPitchMin, gunData.reloadSoundPitchMax);
     }
 
-    [ServerRpc]
+    [Rpc(SendTo.Server)]
     public void EmptySoundServerRpc()
     {
         if (gunData.emptySound == null) return;

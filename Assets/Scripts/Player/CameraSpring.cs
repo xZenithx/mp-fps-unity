@@ -1,6 +1,7 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class CameraSpring : MonoBehaviour
+public class CameraSpring : NetworkBehaviour
 {
     [Min(0.01f)]
     [SerializeField] private float _halfLife = 0.075f;

@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Threading.Tasks;
 using Unity.Netcode;
 using UnityEngine;
@@ -8,6 +7,11 @@ public class DynamicAudioSource : NetworkBehaviour
     private int _neededSources;
     
     public AudioSource[] audioSource;
+
+    public override void OnNetworkSpawn()
+    {
+        AddSource();
+    }
 
     public void AddSource()
     {

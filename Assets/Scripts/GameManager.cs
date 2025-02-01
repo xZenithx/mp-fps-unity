@@ -1,5 +1,4 @@
 using Unity.Netcode;
-using Unity.Services.Matchmaker.Models;
 using UnityEngine;
 
 public class GameManager : NetworkBehaviour
@@ -8,6 +7,7 @@ public class GameManager : NetworkBehaviour
 
     [Header("Settings")]
     [SerializeField] private float playerHealth = 100f;
+    [SerializeField] private string playerWeapon = "ak47";
     [Header("References")]
     
     private GameObject SpawnPointParent;
@@ -25,16 +25,17 @@ public class GameManager : NetworkBehaviour
 
     private void RegisterSpawnpoints(string mapName)
     {
-        Instance.SpawnPointParent = GameObject.FindGameObjectWithTag("SpawnPoints");
+        SpawnPointParent = GameObject.FindGameObjectWithTag("SpawnPoints");
 
-        Instance.spawnPoints = SpawnPointParent.GetComponentsInChildren<Transform>();
+        spawnPoints = SpawnPointParent.GetComponentsInChildren<Transform>();
     }
 
-    public float GetPlayerHealth() => Instance.playerHealth;
+    public float GetPlayerHealth() => playerHealth;
+    public string GetPlayerWeapon() => playerWeapon;
 
     public void GetSpawnPosition(out Vector3 position, out Quaternion rotation)
     {
-        position = Instance.spawnPoints[Random.Range(0, Instance.spawnPoints.Length)].position;
+        position = spawnPoints[Random.Range(0, Instance.spawnPoints.Length)].position;
         rotation = Quaternion.identity;
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using KinematicCharacterController;
 using Unity.Collections;
@@ -52,7 +53,9 @@ public class Player : NetworkBehaviour
     }
 
     public void OnInteract(InputAction.CallbackContext ctx)
-    {}
+    {
+        if (ctx.started) weaponSwitchName = WeaponManager.Instance.GetRandomWeapon().weaponId;
+    }
 
     private bool JumpInput;
     private bool JumpHeldInput;
@@ -85,6 +88,8 @@ public class Player : NetworkBehaviour
     
     public UnityEvent OnRespawnRequested = new();
 
+    private string weaponSwitchName = null;
+
     private void Awake()
     {
         if (IsOwner && PlayerManager.Instance != null)
@@ -95,6 +100,11 @@ public class Player : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        if (IsServer || IsHost)
+        {
+
+        }
+
         if (!IsLocalPlayer)
         {
             MakeRemote();
@@ -104,7 +114,7 @@ public class Player : NetworkBehaviour
 
         MakeLocalPlayer();
     }
-    
+
     public async Task<bool> WaitForPlayerReady()
     {
         while (!isPlayerReady)
@@ -212,7 +222,7 @@ public class Player : NetworkBehaviour
         {
             Fire = AttackInput,
             Reload = ReloadInput,
-            SwitchWeapon = 0,
+            SwitchWeapon = weaponSwitchName ?? null,
             Camera = playerCameraComponent
         };
         playerWeapon.UpdateWeapon(weaponInput);
@@ -246,6 +256,7 @@ public class Player : NetworkBehaviour
         ReloadInput = false;
 
         AttackInput = false;
+        weaponSwitchName = null;
     }
 
     public PlayerHealth GetPlayerHealth() => playerHealth;

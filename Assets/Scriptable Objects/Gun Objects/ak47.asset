@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: ak47
   m_EditorClassIdentifier: 
   name: AK-47
+  weaponId: ak47
   damage: 22
   maxDistance: 200
-  currentAmmo: 31
+  currentAmmo:
+    m_InternalValue: 0
   magSize: 31
   maxAmmo: 9999
   fireRate: 600

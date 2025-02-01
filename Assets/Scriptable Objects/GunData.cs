@@ -1,4 +1,3 @@
-using Unity.Netcode;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "New Gun", menuName = "Weapon/Gun")]
@@ -6,13 +5,14 @@ public class GunData : ScriptableObject
 {
     [Header("Info")]
 	public new string name;
+    public string weaponId;
 
     [Header("Shooting")]
     public float damage;
     public float maxDistance;
 
     [Header("Ammo")]
-    public NetworkVariable<int> currentAmmo;
+    public int currentAmmo;
     public int magSize;
     public int maxAmmo = 9999;
 

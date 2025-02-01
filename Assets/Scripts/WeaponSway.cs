@@ -1,6 +1,7 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class WeaponSway : MonoBehaviour
+public class WeaponSway : NetworkBehaviour
 {
 	[SerializeField] private float smooth;
     [SerializeField] private float multiplier;

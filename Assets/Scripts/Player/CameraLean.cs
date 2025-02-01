@@ -1,6 +1,7 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class CameraLean : MonoBehaviour
+public class CameraLean : NetworkBehaviour
 {
     [SerializeField] private float attackDamping = 0.5f;
     [SerializeField] private float decayDamping = 0.3f;

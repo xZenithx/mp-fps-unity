@@ -46,6 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 085092bfddd3ba245bf3b9c70f7609f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   _sensitivity: 0.1
   cameraXLimit: 75
 --- !u!114 &6006255943709622112
@@ -198,6 +199,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c039c9f05f4a8f4c85080830b4dbf06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   _halfLife: 0.075
   frequency: 18
   angularDisplacement: 2
@@ -386,20 +388,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   root: {fileID: 1023003212496120113}
   cameraTarget: {fileID: 9060818285808587053}
-  walkSpeed: 20
-  walkResponse: 25
-  crouchSpeed: 7
-  crouchResponse: 20
-  airSpeed: 15
-  airAcceleration: 70
+  walkSpeed: 10
+  walkResponse: 15
+  crouchSpeed: 4
+  crouchResponse: 5
+  airSpeed: 7
+  airAcceleration: 20
   jumpSpeed: 20
   coyoteTime: 0.2
-  JumpSustainGravity: 0.5
+  JumpSustainGravity: 1
   gravity: -120
-  slideStartSpeed: 25
-  slideEndSpeed: 15
-  slideFriction: 0.4
-  slideSteerAcceleration: 1
+  slideStartSpeed: 9
+  slideEndSpeed: 3
+  slideFriction: 1.3
+  slideSteerAcceleration: 0
   slideGravity: -90
   standHeight: 2
   crouchHeight: 0.5
@@ -537,7 +539,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 7739780168834024978}
+  m_Father: {fileID: 3821206500504596541}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &9118010937278946943
 MonoBehaviour:
@@ -551,6 +553,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1622dae8b021d8c47a5d823c5800e24f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   smooth: 50
   multiplier: 0.4
 --- !u!1 &5970547925393464084
@@ -604,7 +607,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3213743101
+  GlobalObjectIdHash: 3332174192
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -655,7 +658,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  displayHealth: 0
   _health:
     m_InternalValue: 0
   _maxHealth:
@@ -686,6 +688,76 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 640
   weaponHolder: {fileID: 5919341024162948456}
+  CurrentWeapon: {fileID: 0}
+  weaponId:
+    m_InternalValue:
+      utf8LengthInBytes: 0
+      bytes:
+        offset0000:
+          byte0000: 0
+          byte0001: 0
+          byte0002: 0
+          byte0003: 0
+          byte0004: 0
+          byte0005: 0
+          byte0006: 0
+          byte0007: 0
+          byte0008: 0
+          byte0009: 0
+          byte0010: 0
+          byte0011: 0
+          byte0012: 0
+          byte0013: 0
+          byte0014: 0
+          byte0015: 0
+        offset0016:
+          byte0000: 0
+          byte0001: 0
+          byte0002: 0
+          byte0003: 0
+          byte0004: 0
+          byte0005: 0
+          byte0006: 0
+          byte0007: 0
+          byte0008: 0
+          byte0009: 0
+          byte0010: 0
+          byte0011: 0
+          byte0012: 0
+          byte0013: 0
+          byte0014: 0
+          byte0015: 0
+        offset0032:
+          byte0000: 0
+          byte0001: 0
+          byte0002: 0
+          byte0003: 0
+          byte0004: 0
+          byte0005: 0
+          byte0006: 0
+          byte0007: 0
+          byte0008: 0
+          byte0009: 0
+          byte0010: 0
+          byte0011: 0
+          byte0012: 0
+          byte0013: 0
+          byte0014: 0
+          byte0015: 0
+        byte0048: 0
+        byte0049: 0
+        byte0050: 0
+        byte0051: 0
+        byte0052: 0
+        byte0053: 0
+        byte0054: 0
+        byte0055: 0
+        byte0056: 0
+        byte0057: 0
+        byte0058: 0
+        byte0059: 0
+        byte0060: 0
+        byte0061: 0
 --- !u!114 &1212376778125294721
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -971,8 +1043,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 8034180899259652101}
+  m_Children: []
   m_Father: {fileID: 3821206500504596541}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &6573737461872339058
@@ -1169,6 +1240,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7739780168834024978}
+  - {fileID: 8034180899259652101}
   m_Father: {fileID: 5854437572950158885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6386618380625483204
@@ -1183,6 +1255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b9035fd2c940d646bd65c54caf4cd84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   attackDamping: 0.5
   decayDamping: 0.3
   walkStrength: 0.025

@@ -293,7 +293,7 @@ public class PlayerManager : NetworkBehaviour
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, RequireOwnership = false)]
     private void SpawnPlayerServerRpc(ulong playerId)
     {
         Debug.Log("SpawnPlayerServerRpc " + playerId + " isOwner: " + IsOwner + " isClient: " + IsClient);
