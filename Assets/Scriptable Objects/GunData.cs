@@ -1,5 +1,11 @@
 using UnityEngine;
 
+public enum FireMode
+{
+    SemiAuto,
+    FullAuto
+}
+
 [CreateAssetMenu(fileName = "New Gun", menuName = "Weapon/Gun")]
 public class GunData : ScriptableObject
 {
@@ -10,8 +16,9 @@ public class GunData : ScriptableObject
     [Header("Shooting")]
     public float damage;
     public float maxDistance;
-    public Vector3 spread = Vector3.zero;
-    public Vector3 recoil = Vector3.zero;
+    public FireMode fireMode;
+    public Vector2 spread = Vector2.zero;
+    public Vector2 recoil = Vector2.zero;
 
     [Header("Ammo")]
     public int magSize;

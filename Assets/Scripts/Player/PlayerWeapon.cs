@@ -49,7 +49,6 @@ public class PlayerWeapon : NetworkBehaviour
     private GameObject _weaponMesh;
     private GameObject _weaponMeshParent;
     private GameObject _weaponMuzzle;
-    private LineRenderer _lineRenderer;
 
     public NetworkVariable<FixedString64Bytes> weaponId = new
     (
@@ -96,7 +95,6 @@ public class PlayerWeapon : NetworkBehaviour
         {
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         }
-        _lineRenderer = weaponHolder.GetComponent<LineRenderer>();
     }
 
     private void OnClientConnected(ulong clientId)
@@ -171,15 +169,16 @@ public class PlayerWeapon : NetworkBehaviour
         // Apply spread
         direction += new Vector3(
             Random.Range(-CurrentWeapon.spread.x, CurrentWeapon.spread.x), 
-            Random.Range(-CurrentWeapon.spread.y, CurrentWeapon.spread.y), 
-            Random.Range(-CurrentWeapon.spread.z, CurrentWeapon.spread.z)
+            Random.Range(-CurrentWeapon.spread.y, CurrentWeapon.spread.y),
+            0
         );
 
         direction.Normalize();
 
         Ray ray = new(eyeStartPosition, direction);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, CurrentWeapon.maxDistance, weaponLayerMask))
+        bool hitBool = Physics.Raycast(ray, out RaycastHit hit, CurrentWeapon.maxDistance, weaponLayerMask);
+        if (hitBool)
         {
             Debug.Log(hit.transform.name);
 
@@ -196,7 +195,7 @@ public class PlayerWeapon : NetworkBehaviour
 
         ShotResult result = new()
         {
-            Hit = hit.collider != null,
+            Hit = hitBool,
             Origin = eyeStartPosition,
             HitPoint = hit.collider != null ? hit.point : direction * CurrentWeapon.maxDistance,
             HitNormal = hit.collider != null ? hit.normal : Vector3.zero,
@@ -216,29 +215,24 @@ public class PlayerWeapon : NetworkBehaviour
         _currentMagazine--;
 
         Debug.Log($"OnFireClientRpc {result.Hit} {result.Origin} {result.HitPoint} {result.HitNormal} {result.HitObjectNetworkId}");
+        
         // Draw the line renderer
-        LineRenderer lineRenderer = gameObject.AddComponent<LineRenderer>();
-        lineRenderer.SetPosition(0, _weaponMuzzle.transform.position);
-        lineRenderer.SetPosition(1, result.HitPoint);
-        lineRenderer.startWidth = 0.1f;
-        lineRenderer.endWidth = 0.1f;
-        lineRenderer.material = new Material(Shader.Find("Unlit/Color"))
-        {
-            color = Color.red
-        };
-        lineRenderer.startColor = Color.red;
-        lineRenderer.endColor = Color.red;
+        LineRendererPoolManager.Instance.RenderLine(_weaponMuzzle.transform.position, result.HitPoint, Color.red, 0.01f, 0.05f);
 
-        // Destroy the line renderer after 0.1 seconds
-        Destroy(lineRenderer, 0.1f);
+        // Apply impact effect
+        if (result.Hit)
+        {
+            // GameObject impactEffect = Instantiate(WeaponManager.Instance.GetImpactEffectById(CurrentWeapon.impactEffect), result.HitPoint, Quaternion.LookRotation(result.HitNormal));
+            // Destroy(impactEffect, 1f);
+        }
 
         // Apply camera recoil
         if (IsOwner)
         {
             _eyeAngles += new Vector3(
                 Random.Range(0, CurrentWeapon.recoil.x), 
-                Random.Range(0, CurrentWeapon.recoil.y), 
-                Random.Range(0, CurrentWeapon.recoil.z)
+                Random.Range(0, CurrentWeapon.recoil.y),
+                0
             );
         }
         
@@ -392,10 +386,13 @@ public class PlayerWeapon : NetworkBehaviour
 
         GunDataReference gunDataReference = weaponPrefab.GetComponent<GunDataReference>();
         _weaponMesh = gunDataReference.weaponMesh;
+        _weaponMeshParent = gunDataReference.weaponMeshParent;
+        _weaponMuzzle = gunDataReference.weaponMuzzle;
 
         if (!IsOwner)
         {
             weaponPrefab.transform.SetLocalPositionAndRotation(new Vector3(0.31f, -0.25f, -0.12f), Quaternion.identity);
+            gunDataReference.weaponMeshParent.transform.localScale = new Vector3(100f, 100f, 100f);
         }
         else
         {

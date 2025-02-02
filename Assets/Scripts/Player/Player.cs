@@ -218,14 +218,18 @@ public class Player : NetworkBehaviour
         weaponSway.UpdateSway(lookInput, deltaTime);
 
         // Get weapon input and update it
-        PlayerWeaponInput weaponInput = new()
+
+        if (!isPaused)
         {
-            Fire = AttackInput,
-            Reload = ReloadInput,
-            SwitchWeapon = weaponSwitchName ?? null,
-            Camera = playerCameraComponent
-        };
-        playerWeapon.UpdateWeapon(weaponInput);
+            PlayerWeaponInput weaponInput = new()
+            {
+                Fire = AttackInput,
+                Reload = ReloadInput,
+                SwitchWeapon = weaponSwitchName ?? null,
+                Camera = playerCameraComponent
+            };
+            playerWeapon.UpdateWeapon(weaponInput);
+        }
     }
 
     public void LateUpdate()
