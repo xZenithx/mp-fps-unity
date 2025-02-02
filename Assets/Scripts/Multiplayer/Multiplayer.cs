@@ -36,12 +36,17 @@ public class Multiplayer : MonoBehaviour
 
     const float k_lobbyHeartbeatInterval = 20f;
     const float k_lobbyPollInterval = 65f;
+    const float k_serverAliveCheckInterval = 10f;
     const string k_keyJoinCode = "RelayJoinCode";
     const string k_dtlsEncryption = "dtls"; // Datagram Transport Layer Security
     const string k_wssEncryption = "wss"; // Web Socket Secure, use for WebGL builds
 
-    CountdownTimer heartbeatTimer = new CountdownTimer(k_lobbyHeartbeatInterval);
-    CountdownTimer pollForUpdatesTimer = new CountdownTimer(k_lobbyPollInterval);
+    readonly CountdownTimer heartbeatTimer = new(k_lobbyHeartbeatInterval);
+    readonly CountdownTimer pollForUpdatesTimer = new(k_lobbyPollInterval);
+    readonly CountdownTimer serverAliveCheckTimer = new(k_serverAliveCheckInterval);
+
+    private bool isServerResponding = true;
+    private float lastResponseTime;
 
     async void Start()
     {
@@ -61,12 +66,39 @@ public class Multiplayer : MonoBehaviour
             await HandlePollForUpdatesAsync();
             pollForUpdatesTimer.Start();
         };
+
+        serverAliveCheckTimer.OnTimerStop += () =>
+        {
+            CheckServerStatus();
+            serverAliveCheckTimer.Start();
+        };
+
+        NetworkManager.Singleton.OnClientConnectedCallback += (id) =>
+        {
+            if (NetworkManager.Singleton.IsClient)
+            {
+                serverAliveCheckTimer.Start();
+            }
+        };
+
+        NetworkManager.Singleton.OnClientDisconnectCallback += (id) =>
+        {
+            serverAliveCheckTimer.Stop();
+        };
     }
 
     private void Update()
     {
         heartbeatTimer.Tick(Time.deltaTime); //If we dont add these lines lobby will not be visible in 30s(by default)
         pollForUpdatesTimer.Tick(Time.deltaTime);
+        serverAliveCheckTimer.Tick(Time.deltaTime);
+
+
+        if (!isServerResponding && Time.time - lastResponseTime > 30f)
+        {
+            Debug.Log("Server not responding - auto disconnecting");
+            Disconnect();
+        }
     }
 
     async Task Authenticate()
@@ -78,7 +110,7 @@ public class Multiplayer : MonoBehaviour
     {
         if (UnityServices.State == ServicesInitializationState.Uninitialized)
         {
-            InitializationOptions options = new InitializationOptions();
+            InitializationOptions options = new();
             options.SetProfile(playerName);
 
             await UnityServices.InitializeAsync(options);
@@ -86,7 +118,7 @@ public class Multiplayer : MonoBehaviour
 
         AuthenticationService.Instance.SignedIn += () =>
         {
-            Debug.Log("Signed in as " + AuthenticationService.Instance.PlayerId);
+            Debug.Log("Signed in as " + playerName + " <" + AuthenticationService.Instance.PlayerId + ">");
         };
 
         if (!AuthenticationService.Instance.IsSignedIn)
@@ -104,7 +136,7 @@ public class Multiplayer : MonoBehaviour
             Allocation allocation = await AllocateRelay();
             string relayJoinCode = await GetRelayJoinCode(allocation);
 
-            CreateLobbyOptions options = new CreateLobbyOptions
+            CreateLobbyOptions options = new()
             {
                 IsPrivate = false
             };
@@ -198,6 +230,14 @@ public class Multiplayer : MonoBehaviour
         }
     }
 
+    public void Disconnect()
+    {
+        NetworkManager.Singleton.Shutdown();
+        // At this point we must use the UnityEngine's SceneManager to switch back to the MainMenu
+        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+    }
+
+
     async Task HandleHeartbeatAsync()
     {
         try
@@ -221,6 +261,28 @@ public class Multiplayer : MonoBehaviour
         catch (LobbyServiceException e)
         {
             Debug.LogError("Failed to poll for updates on lobby: " + e.Message);
+        }
+    }
+
+    [ClientRpc]
+    private void ServerAliveResponseClientRpc()
+    {
+        isServerResponding = true;
+        lastResponseTime = Time.time;
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void CheckServerStatusServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        ServerAliveResponseClientRpc();
+    }
+
+    private void CheckServerStatus()
+    {
+        if (NetworkManager.Singleton.IsClient)
+        {
+            isServerResponding = false;
+            CheckServerStatusServerRpc();
         }
     }
 }

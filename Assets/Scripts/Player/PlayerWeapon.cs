@@ -11,6 +11,24 @@ public struct PlayerWeaponInput
     public Camera Camera;
 }
 
+public struct ShotResult : INetworkSerializable
+{
+    public bool Hit;
+    public Vector3 Origin;
+    public Vector3 HitPoint;
+    public Vector3 HitNormal;
+    public ulong HitObjectNetworkId;
+
+    public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+    {
+        serializer.SerializeValue(ref Hit);
+        serializer.SerializeValue(ref Origin);
+        serializer.SerializeValue(ref HitPoint);
+        serializer.SerializeValue(ref HitNormal);
+        serializer.SerializeValue(ref HitObjectNetworkId);
+    }
+}
+
 public class PlayerWeapon : NetworkBehaviour
 {
     [Header("Settings")]
@@ -31,7 +49,7 @@ public class PlayerWeapon : NetworkBehaviour
     private GameObject _weaponMesh;
     private GameObject _weaponMeshParent;
     private GameObject _weaponMuzzle;
-    private int _weaponLayer = 0;
+    private LineRenderer _lineRenderer;
 
     public NetworkVariable<FixedString64Bytes> weaponId = new
     (
@@ -44,12 +62,7 @@ public class PlayerWeapon : NetworkBehaviour
 
     public void Initialize()
     {
-        int layer = weaponLayerMask.value;
-        while(layer > 0)
-        {
-            layer >>= 1;
-            _weaponLayer++;
-        }
+
     }
 
     public void UpdateWeapon(PlayerWeaponInput input)
@@ -83,6 +96,7 @@ public class PlayerWeapon : NetworkBehaviour
         {
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         }
+        _lineRenderer = weaponHolder.GetComponent<LineRenderer>();
     }
 
     private void OnClientConnected(ulong clientId)
@@ -151,9 +165,19 @@ public class PlayerWeapon : NetworkBehaviour
         Debug.Log($"FireWeaponServerRpc CanFire {clientId}");
 
         _currentMagazine--;
-        OnFireClientRpc();
 
-        Ray ray = new(eyeStartPosition, eyeAngles);
+        Vector3 direction = eyeAngles;
+
+        // Apply spread
+        direction += new Vector3(
+            Random.Range(-CurrentWeapon.spread.x, CurrentWeapon.spread.x), 
+            Random.Range(-CurrentWeapon.spread.y, CurrentWeapon.spread.y), 
+            Random.Range(-CurrentWeapon.spread.z, CurrentWeapon.spread.z)
+        );
+
+        direction.Normalize();
+
+        Ray ray = new(eyeStartPosition, direction);
 
         if (Physics.Raycast(ray, out RaycastHit hit, CurrentWeapon.maxDistance, weaponLayerMask))
         {
@@ -169,17 +193,55 @@ public class PlayerWeapon : NetworkBehaviour
                 });
             }
         }
-        Debug.DrawLine(ray.origin, hit.collider ? hit.point : ray.direction * CurrentWeapon.maxDistance, Color.green, 1f);
+
+        ShotResult result = new()
+        {
+            Hit = hit.collider != null,
+            Origin = eyeStartPosition,
+            HitPoint = hit.collider != null ? hit.point : direction * CurrentWeapon.maxDistance,
+            HitNormal = hit.collider != null ? hit.normal : Vector3.zero,
+            HitObjectNetworkId = hit.collider != null && hit.collider.TryGetComponent<NetworkObject>(out var netObj) 
+                ? netObj.NetworkObjectId 
+                : 0
+        };
+
+        OnFireClientRpc(result);
     }
 
     [Rpc(SendTo.Everyone)]
-    private void OnFireClientRpc()
+    private void OnFireClientRpc(ShotResult result)
     {
         if (!IsClient) return;
 
         _currentMagazine--;
 
-        Debug.Log($"{OwnerClientId}: FireSoundClientRpc");
+        Debug.Log($"OnFireClientRpc {result.Hit} {result.Origin} {result.HitPoint} {result.HitNormal} {result.HitObjectNetworkId}");
+        // Draw the line renderer
+        LineRenderer lineRenderer = gameObject.AddComponent<LineRenderer>();
+        lineRenderer.SetPosition(0, _weaponMuzzle.transform.position);
+        lineRenderer.SetPosition(1, result.HitPoint);
+        lineRenderer.startWidth = 0.1f;
+        lineRenderer.endWidth = 0.1f;
+        lineRenderer.material = new Material(Shader.Find("Unlit/Color"))
+        {
+            color = Color.red
+        };
+        lineRenderer.startColor = Color.red;
+        lineRenderer.endColor = Color.red;
+
+        // Destroy the line renderer after 0.1 seconds
+        Destroy(lineRenderer, 0.1f);
+
+        // Apply camera recoil
+        if (IsOwner)
+        {
+            _eyeAngles += new Vector3(
+                Random.Range(0, CurrentWeapon.recoil.x), 
+                Random.Range(0, CurrentWeapon.recoil.y), 
+                Random.Range(0, CurrentWeapon.recoil.z)
+            );
+        }
+        
         _dynamicAudioSource.PlaySound(CurrentWeapon.shotSound, CurrentWeapon.shotSoundVolume, CurrentWeapon.shotSoundPitchMin, CurrentWeapon.shotSoundPitchMax);
     }
 
@@ -327,16 +389,29 @@ public class PlayerWeapon : NetworkBehaviour
         }
 
         GameObject weaponPrefab = Instantiate(WeaponManager.Instance.GetWeaponPrefabById(_weaponId), weaponHolder.transform);
+
+        GunDataReference gunDataReference = weaponPrefab.GetComponent<GunDataReference>();
+        _weaponMesh = gunDataReference.weaponMesh;
+
         if (!IsOwner)
         {
             weaponPrefab.transform.SetLocalPositionAndRotation(new Vector3(0.31f, -0.25f, -0.12f), Quaternion.identity);
         }
         else
         {
-            weaponPrefab.transform.localScale = new Vector3(50f, 50f, 50f);
-        }
+            gunDataReference.weaponMeshParent.transform.localScale = new Vector3(50f, 50f, 50f);
 
-        GunDataReference gunDataReference = weaponPrefab.GetComponent<GunDataReference>();
-        _weaponMesh = gunDataReference.weaponMesh;
+            // Set all the models to the layer with the name "Weapon" for rendering purposes
+            RecursiveLayerChange(gunDataReference.weaponMeshParent.transform, LayerMask.NameToLayer("Weapon"));
+        }
+    }
+
+    private void RecursiveLayerChange(Transform transform, int layer)
+    {
+        transform.gameObject.layer = layer;
+        foreach (Transform child in transform)
+        {
+            RecursiveLayerChange(child, layer);
+        }
     }
 }

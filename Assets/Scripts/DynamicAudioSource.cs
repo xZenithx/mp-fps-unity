@@ -28,7 +28,7 @@ public class DynamicAudioSource : NetworkBehaviour
         {
             audioSource[i] = gameObject.AddComponent<AudioSource>();
             audioSource[i].playOnAwake = false;
-            audioSource[i].spatialBlend = 0.5f;
+            audioSource[i].spatialBlend = IsOwner ? 0.5f : 1f;
         }
     }
 

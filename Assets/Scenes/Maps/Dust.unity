@@ -243,7 +243,7 @@ GameObject:
   - component: {fileID: 531638908}
   - component: {fileID: 531638907}
   - component: {fileID: 531638906}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: MainMap
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -12349,7 +12349,7 @@ GameObject:
   - component: {fileID: 785681109}
   - component: {fileID: 785681108}
   - component: {fileID: 785681107}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: ShortStairs1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -15479,7 +15479,7 @@ GameObject:
   - component: {fileID: 1849560400}
   - component: {fileID: 1849560399}
   - component: {fileID: 1849560398}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: ShortStairs2
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -62,6 +62,13 @@ public class PlayerManager : NetworkBehaviour
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
     }
 
+    public void Disconnect()
+    {
+        NetworkManager.Singleton.Shutdown();
+        // At this point we must use the UnityEngine's SceneManager to switch back to the MainMenu
+        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+    }
+
     private async Task<bool> WaitForPlayerHealthValid(Player player)
     {
         while (player.GetComponent<PlayerHealth>() == null)

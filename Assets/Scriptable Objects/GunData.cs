@@ -10,6 +10,8 @@ public class GunData : ScriptableObject
     [Header("Shooting")]
     public float damage;
     public float maxDistance;
+    public Vector3 spread = Vector3.zero;
+    public Vector3 recoil = Vector3.zero;
 
     [Header("Ammo")]
     public int magSize;
@@ -20,18 +22,17 @@ public class GunData : ScriptableObject
     public float reloadTime;
     public AnimationCurve reloadCurve;
 
-    [HideInInspector]
-    public bool reloading;
-
     [Header("Audio")]
     public AudioClip shotSound;
     public int shotSoundVolume = 100;
     public int shotSoundPitchMin = 95;
     public int shotSoundPitchMax = 100;
+    [Space]
     public AudioClip reloadSound;
     public int reloadSoundVolume = 100;
     public int reloadSoundPitchMin = 95;
     public int reloadSoundPitchMax = 100;
+    [Space]
     public AudioClip emptySound;
     public int emptySoundVolume = 100;
     public int emptySoundPitchMin = 95;

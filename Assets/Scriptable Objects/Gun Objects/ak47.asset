@@ -16,6 +16,8 @@ MonoBehaviour:
   weaponId: ak47
   damage: 22
   maxDistance: 200
+  spread: {x: 0, y: 0, z: 0}
+  recoil: {x: 0, y: 1, z: 0}
   magSize: 31
   maxAmmo: 9999
   fireRate: 600
@@ -44,7 +46,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  reloading: 0
   shotSound: {fileID: 8300000, guid: cbe7625a97c21114989540135f9632d4, type: 3}
   shotSoundVolume: 100
   shotSoundPitchMin: 98
