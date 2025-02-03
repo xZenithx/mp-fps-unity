@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Threading.Tasks;
 using Unity.Netcode;
 using UnityEngine;
@@ -29,6 +28,8 @@ public class DynamicAudioSource : NetworkBehaviour
             audioSource[i] = gameObject.AddComponent<AudioSource>();
             audioSource[i].playOnAwake = false;
             audioSource[i].spatialBlend = IsOwner ? 0.5f : 1f;
+            audioSource[i].rolloffMode = AudioRolloffMode.Logarithmic;
+            audioSource[i].maxDistance = 50f;
         }
     }
 
@@ -74,19 +75,6 @@ public class DynamicAudioSource : NetworkBehaviour
 
         return true;
     }
-
-    private async Task<bool> WaitSoundSeconds(float seconds)
-    {
-        await Task.Yield();
-        await Task.Delay((int) (seconds * 1000));
-        return true;
-    }
-
-    // private IEnumerator ClearSound(AudioSource source)
-    // {
-    //     yield return new WaitForSeconds(source.clip.length);
-    //     source.clip = null;
-    // }
 
     private async void ClearSound(AudioSource source)
     {

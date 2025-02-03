@@ -16,6 +16,7 @@ public struct CharacterInput
 {
     public Quaternion Rotation;
     public Vector2 Move;
+    public bool Sprinting;
     public bool Jump;
     public bool JumpSustain;
     public CrouchInput Crouch;
@@ -42,6 +43,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 20f;
     [SerializeField] private float walkResponse = 25f;
+    [SerializeField] private float sprintMultiplier = 1.5f;
     [SerializeField] private float crouchSpeed = 7f;
     [SerializeField] private float crouchResponse = 20f;
     [Space]
@@ -83,6 +85,8 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
     private float _timeSinceJumpRequest;
     private bool _ungroundedDueToJump;
 
+    private bool _sprinting;
+
     private Collider[] _uncrouchOverlapResults;
 
     public void Initialize()
@@ -101,6 +105,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
         _requestedRotation = input.Rotation;
         _requestedMovement = new Vector3(input.Move.x, 0, input.Move.y);
         _requestedMovement = Vector3.ClampMagnitude(_requestedMovement, 1f);
+        _sprinting = input.Sprinting;
 
         _requestedMovement = input.Rotation * _requestedMovement;
 
@@ -216,8 +221,12 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
             if (_state.Stance is Stance.Stand or Stance.Crouch)
             {
                 float speed = _state.Stance is Stance.Stand ? walkSpeed : crouchSpeed;
-
                 float response = _state.Stance is Stance.Stand ? walkResponse : crouchResponse;
+
+                if (_state.Stance is Stance.Stand && _sprinting)
+                {
+                    speed *= sprintMultiplier;
+                }
 
                 Vector3 targetVelocity = groundedMovement * speed;
                 Vector3 moveVelocity = Vector3.Lerp
@@ -238,10 +247,10 @@ public class PlayerCharacter : MonoBehaviour, ICharacterController
 
                 // Slope
                 {
-                    Vector3 force = Vector3.ProjectOnPlane(
+                    Vector3 force = deltaTime * slideGravity * Vector3.ProjectOnPlane(
                         vector: -motor.CharacterUp,
                         planeNormal: motor.GroundingStatus.GroundNormal
-                    ) * slideGravity * deltaTime;
+                    );
 
                     currentVelocity -= force;
                 }

@@ -8,6 +8,8 @@ public class SliderLag : MonoBehaviour
     private float _value;
     private float _targetValue;
 
+    [SerializeField] private float _lag = 10f;
+
     public void Start()
     {
         _slider = GetComponent<Slider>();
@@ -17,7 +19,11 @@ public class SliderLag : MonoBehaviour
     {
         // Interpolate _slider.value to slider.value
         _targetValue = slider.value;
-        _value = Mathf.Lerp(_value, _targetValue, Time.deltaTime * 10f);
+        _value = Mathf.Lerp(
+            _value, 
+            _targetValue,
+            1f - Mathf.Exp(-_lag * Time.deltaTime)
+        );
         _slider.value = _value;
 
     }

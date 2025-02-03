@@ -16,6 +16,8 @@ TagManager:
   - Death Camera
   - Map Cameras
   - Initial Spawnpoint
+  - Ammo Text
+  - HUD Canvas
   layers:
   - Default
   - TransparentFX

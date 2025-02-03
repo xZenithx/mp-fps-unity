@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PauseManager : MonoBehaviour
 {
@@ -14,6 +15,14 @@ public class PauseManager : MonoBehaviour
         Instance = this;
 
         PauseCanvas.SetActive(false);
+
+        SceneManager.sceneLoaded += (_, _) =>
+        {
+            if (PauseCanvas != null && PauseCanvas.activeSelf)
+            {
+                PauseCanvas.SetActive(false);
+            }
+        };
     }
 
     public void EnablePauseMenu()

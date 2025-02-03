@@ -16,12 +16,13 @@ MonoBehaviour:
   weaponId: glock
   damage: 12
   maxDistance: 100
-  spread: {x: 0, y: 0, z: 0}
-  recoil: {x: 0, y: 0, z: 0}
+  fireMode: 0
+  spread: {x: 0, y: 0}
+  recoil: {x: 0, y: 0}
   magSize: 20
   maxAmmo: 9999
   fireRate: 400
-  reloadTime: 0.9
+  reloadTime: 0.6
   reloadCurve:
     serializedVersion: 2
     m_Curve:
@@ -46,15 +47,15 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  shotSound: {fileID: 0}
+  shotSound: {fileID: 8300000, guid: 4bcdcda8e3e93374a915c49fa1251bfa, type: 3}
   shotSoundVolume: 100
   shotSoundPitchMin: 95
   shotSoundPitchMax: 100
-  reloadSound: {fileID: 0}
+  reloadSound: {fileID: 8300000, guid: f3a8b0154438a3948916022ea9d85914, type: 3}
   reloadSoundVolume: 100
   reloadSoundPitchMin: 95
   reloadSoundPitchMax: 100
-  emptySound: {fileID: 0}
+  emptySound: {fileID: 8300000, guid: d66dbe62adc32ce438850a54db7ea06b, type: 3}
   emptySoundVolume: 100
   emptySoundPitchMin: 95
   emptySoundPitchMax: 100

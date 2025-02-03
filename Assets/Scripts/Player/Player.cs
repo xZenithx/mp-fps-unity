@@ -1,7 +1,5 @@
-using System;
 using System.Threading.Tasks;
 using KinematicCharacterController;
-using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Events;
@@ -22,7 +20,7 @@ public class Player : NetworkBehaviour
     [SerializeField] private StanceVignette stanceVignette;
     [Space]
     [SerializeField] private WeaponSway weaponSway;
-    // private Weapon weapon;
+    
     private bool isPlayerReady = false;
     private Camera playerCameraComponent;
     private PlayerInput playerInput;
@@ -54,7 +52,27 @@ public class Player : NetworkBehaviour
 
     public void OnInteract(InputAction.CallbackContext ctx)
     {
-        if (ctx.started) weaponSwitchName = WeaponManager.Instance.GetRandomWeapon().weaponId;
+        // Suicide key for debugging
+        if (ctx.started)
+        {
+            // #if DEVELOPMENT_BUILD || UNITY_EDITOR
+            //     if (playerHealth != null)
+            //     {
+            //         playerHealth.TakeDamageServer(new DamageData 
+            //         { 
+            //             Damage = float.MaxValue,
+            //             Source = GetComponent<NetworkObject>()
+            //         });
+            //         Debug.Log($"Player {OwnerClientId} used debug suicide command");
+            //     }
+            // #endif
+
+            if (playerWeapon.CurrentWeapon == null)
+            {
+                weaponSwitchName = WeaponManager.Instance.GetRandomWeapon().weaponId;
+            }
+        }
+
     }
 
     private bool JumpInput;
@@ -71,8 +89,12 @@ public class Player : NetworkBehaviour
         if (ctx.started) InputCrouch = true;
     }
 
+    private bool InputSprintHeld;
     public void OnSprint(InputAction.CallbackContext ctx)
-    {}
+    {
+        if (ctx.started) InputSprintHeld = true;
+        if (ctx.canceled) InputSprintHeld = false;
+    }
 
     public void OnPause(InputAction.CallbackContext ctx)
     {
@@ -89,6 +111,8 @@ public class Player : NetworkBehaviour
     public UnityEvent OnRespawnRequested = new();
 
     private string weaponSwitchName = null;
+    private bool spawnSwitchWeapon = false;
+    private GameObject _hudCanvas;
 
     private void Awake()
     {
@@ -102,7 +126,11 @@ public class Player : NetworkBehaviour
     {
         if (IsServer || IsHost)
         {
-
+            // Set the name of the player gameobject to the player's name
+            
+            string playerName = Multiplayer.Instance.PlayerName;
+            gameObject.name = $"{playerName}";
+            NetworkObject.name = gameObject.name;
         }
 
         if (!IsLocalPlayer)
@@ -141,11 +169,14 @@ public class Player : NetworkBehaviour
 
         GetComponentInChildren<Camera>().enabled = false;
         GetComponentInChildren<AudioListener>().enabled = false;
+
+        _hudCanvas = GameObject.FindGameObjectWithTag("HUD Canvas");
+        HudCanvas(true);
         
         playerInput.enabled = true;
         playerInput.DeactivateInput();
 
-        playerHealth.OnDeath.AddListener(OnDeath);
+        // playerHealth.OnDeath.AddListener(OnDeath);
 
         isPlayerReady = true;
     }
@@ -174,14 +205,29 @@ public class Player : NetworkBehaviour
 
     public void OnDeath()
     {
-        Debug.Log("Player.OnDeath: Deactivating input");
+        Debug.Log("Player.OnDeath " + OwnerClientId);
         playerInput.DeactivateInput();
+
+        HudCanvas(false);
     }
 
     public void OnSpawn()
     {
-        Debug.Log("Player.OnSpawn: Activating input");
+        Debug.Log("Player.OnSpawn: " + OwnerClientId);
         playerInput.ActivateInput();
+
+        spawnSwitchWeapon = true;
+
+        HudCanvas(true);
+    }
+
+    private void HudCanvas(bool active)
+    {
+        if (_hudCanvas == null)
+        {
+            return;
+        }
+        _hudCanvas.SetActive(active);
     }
 
     public void Update()
@@ -208,6 +254,7 @@ public class Player : NetworkBehaviour
         {
             Rotation = playerCamera.transform.rotation,
             Move = MoveInput,
+            Sprinting = InputSprintHeld,
             Jump = JumpInput,
             JumpSustain = JumpHeldInput,
             Crouch = InputCrouch ? CrouchInput.Toggle : CrouchInput.None
@@ -221,12 +268,19 @@ public class Player : NetworkBehaviour
 
         if (!isPaused)
         {
+            if (spawnSwitchWeapon)
+            {
+                weaponSwitchName = WeaponManager.Instance.GetRandomWeapon().weaponId;
+                spawnSwitchWeapon = false;
+            }
+
             PlayerWeaponInput weaponInput = new()
             {
                 Fire = AttackInput,
                 Reload = ReloadInput,
                 SwitchWeapon = weaponSwitchName ?? null,
-                Camera = playerCameraComponent
+                Camera = playerCameraComponent,
+                Sprinting = InputSprintHeld
             };
             playerWeapon.UpdateWeapon(weaponInput);
         }
@@ -244,7 +298,7 @@ public class Player : NetworkBehaviour
         CharacterState state = playerCharacter.GetState();
 
         playerCamera.UpdatePosition(cameraTarget);
-        playerHealth.UpdateHealthSlider();
+        playerHealth.UpdateHealthSlider(deltaTime);
         cameraSpring.UpdateSpring(deltaTime, cameraTarget.up);
         cameraLean.UpdateLean
         (

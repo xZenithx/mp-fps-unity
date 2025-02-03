@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -9,6 +10,7 @@ public struct PlayerWeaponInput
     public bool Reload;
     public string SwitchWeapon;
     public Camera Camera;
+    public bool Sprinting;
 }
 
 public struct ShotResult : INetworkSerializable
@@ -46,9 +48,13 @@ public class PlayerWeapon : NetworkBehaviour
     private int _currentMagazine;
     private int _magazineSize;
     private bool _reloading = false;
+    private FireMode _fireMode;
+    private bool _shotLastFrame = false;
     private GameObject _weaponMesh;
     private GameObject _weaponMeshParent;
     private GameObject _weaponMuzzle;
+    private TMP_Text _ammoText;
+    private bool _sprinting;
 
     public NetworkVariable<FixedString64Bytes> weaponId = new
     (
@@ -61,7 +67,7 @@ public class PlayerWeapon : NetworkBehaviour
 
     public void Initialize()
     {
-
+        WaitForAmmoText();
     }
 
     public void UpdateWeapon(PlayerWeaponInput input)
@@ -70,10 +76,18 @@ public class PlayerWeapon : NetworkBehaviour
         _eyeStartPosition = input.Camera.transform.position;
         _eyeAngles = input.Camera.transform.forward;
 
+        _sprinting = input.Sprinting;
+
         if (input.Fire)
         {
             // Fire the weapon
             FireWeapon();
+
+            _shotLastFrame = true;
+        }
+        else
+        {
+            _shotLastFrame = false;
         }
 
         if (input.Reload)
@@ -84,6 +98,7 @@ public class PlayerWeapon : NetworkBehaviour
 
         if (!string.IsNullOrEmpty(input.SwitchWeapon))
         {
+            Debug.Log($"SwitchWeapon {input.SwitchWeapon}");
             // Switch the weapon
             SwitchWeapon(input.SwitchWeapon);
         }
@@ -106,6 +121,25 @@ public class PlayerWeapon : NetworkBehaviour
         SwitchWeaponServerRpc(weaponId.Value, clientId);
     }
 
+
+    private async void WaitForAmmoText()
+    {
+        while (GameObject.FindGameObjectWithTag("Ammo Text") == null)
+        {
+            await Task.Yield();
+        }
+
+        Debug.Log("Client> Found Ammo Text");
+        _ammoText = GameObject.FindGameObjectWithTag("Ammo Text").GetComponent<TMP_Text>();
+        UpdateAmmoText();
+    }
+
+    private void UpdateAmmoText()
+    {
+        if (_ammoText == null) return;
+        _ammoText.text = $"{_currentMagazine} / {_magazineSize}";
+    }
+
     /*
     * FireWeapon
     */
@@ -114,6 +148,8 @@ public class PlayerWeapon : NetworkBehaviour
     {
         if (!IsOwner || !CanFire()) return;
         
+        // Check ammo cuz its behaving weird
+        Debug.Log($"FireWeapon {_currentMagazine} {_lastTimeFired} {Time.time} {60 / CurrentWeapon.fireRate}");
         FireWeaponServerRpc(NetworkManager.Singleton.LocalClientId, _eyeStartPosition, _eyeAngles);
     }
 
@@ -121,6 +157,16 @@ public class PlayerWeapon : NetworkBehaviour
     {
         // Debug.Log($"CanFire {_currentMagazine} {_lastTimeFired} {Time.time} {60 / CurrentWeapon.fireRate}");
         if (CurrentWeapon == null) 
+        {
+            return false;
+        }
+
+        if (_fireMode == FireMode.SemiAuto && _shotLastFrame) 
+        {
+            return false;
+        }
+
+        if (_sprinting)
         {
             return false;
         }
@@ -197,7 +243,7 @@ public class PlayerWeapon : NetworkBehaviour
         {
             Hit = hitBool,
             Origin = eyeStartPosition,
-            HitPoint = hit.collider != null ? hit.point : direction * CurrentWeapon.maxDistance,
+            HitPoint = hit.collider != null ? hit.point : eyeStartPosition + (direction * CurrentWeapon.maxDistance),
             HitNormal = hit.collider != null ? hit.normal : Vector3.zero,
             HitObjectNetworkId = hit.collider != null && hit.collider.TryGetComponent<NetworkObject>(out var netObj) 
                 ? netObj.NetworkObjectId 
@@ -210,9 +256,8 @@ public class PlayerWeapon : NetworkBehaviour
     [Rpc(SendTo.Everyone)]
     private void OnFireClientRpc(ShotResult result)
     {
+        Debug.Log($"OnFireClientRpc {IsClient} {IsOwner} {IsHost} {IsServer}");
         if (!IsClient) return;
-
-        _currentMagazine--;
 
         Debug.Log($"OnFireClientRpc {result.Hit} {result.Origin} {result.HitPoint} {result.HitNormal} {result.HitObjectNetworkId}");
         
@@ -226,16 +271,13 @@ public class PlayerWeapon : NetworkBehaviour
             // Destroy(impactEffect, 1f);
         }
 
-        // Apply camera recoil
-        if (IsOwner)
+        if (IsOwner && !IsHost)
         {
-            _eyeAngles += new Vector3(
-                Random.Range(0, CurrentWeapon.recoil.x), 
-                Random.Range(0, CurrentWeapon.recoil.y),
-                0
-            );
+
+            _currentMagazine--;
         }
         
+        UpdateAmmoText();
         _dynamicAudioSource.PlaySound(CurrentWeapon.shotSound, CurrentWeapon.shotSoundVolume, CurrentWeapon.shotSoundPitchMin, CurrentWeapon.shotSoundPitchMax);
     }
 
@@ -254,8 +296,8 @@ public class PlayerWeapon : NetworkBehaviour
 
     private void ReloadWeapon()
     {
-        if (!IsOwner || _reloading || _currentMagazine == _magazineSize) return;
         Debug.Log($"Reloading weapon! {IsClient} {IsOwner}");
+        if (!IsOwner || _reloading || _currentMagazine == _magazineSize) return;
         ReloadWeaponServerRpc(NetworkManager.Singleton.LocalClientId);
 
     }
@@ -315,6 +357,7 @@ public class PlayerWeapon : NetworkBehaviour
         }
         _weaponMesh.transform.SetLocalPositionAndRotation(originalPosition, originalRotation);
         _reloading = false;
+        UpdateAmmoText();
         // _mag.Value = gunData.magSize;
     }
 
@@ -345,6 +388,7 @@ public class PlayerWeapon : NetworkBehaviour
         CurrentWeapon = WeaponManager.Instance.GetWeaponDataById(_weaponId);
         _magazineSize = CurrentWeapon.magSize;
         _currentMagazine = _magazineSize;
+        _fireMode = CurrentWeapon.fireMode;
 
         this.weaponId.Value = weaponId;
         SwitchWeaponRpc(weaponId, _magazineSize, _currentMagazine, RpcTarget.Single(clientId, RpcTargetUse.Temp));
@@ -360,10 +404,12 @@ public class PlayerWeapon : NetworkBehaviour
         CurrentWeapon = WeaponManager.Instance.GetWeaponDataById(_weaponId);
         _magazineSize = CurrentWeapon.magSize;
         _currentMagazine = _magazineSize;
+        _fireMode = CurrentWeapon.fireMode;
+
 
         this.weaponId.Value = weaponId;
         
-        SwitchWeaponRpc(_weaponId, _magazineSize, _currentMagazine, RpcTarget.Everyone);
+        SwitchWeaponRpc(weaponId, _magazineSize, _currentMagazine, RpcTarget.Everyone);
     }
     
     [Rpc(SendTo.SpecifiedInParams)]
@@ -376,6 +422,7 @@ public class PlayerWeapon : NetworkBehaviour
         CurrentWeapon = WeaponManager.Instance.GetWeaponDataById(_weaponId);
         _magazineSize = magazineSize;
         _currentMagazine = currentMagazine;
+        _fireMode = CurrentWeapon.fireMode;
 
         if (weaponHolder.transform.childCount > 0)
         {
@@ -400,6 +447,8 @@ public class PlayerWeapon : NetworkBehaviour
 
             // Set all the models to the layer with the name "Weapon" for rendering purposes
             RecursiveLayerChange(gunDataReference.weaponMeshParent.transform, LayerMask.NameToLayer("Weapon"));
+
+            UpdateAmmoText();
         }
     }
 

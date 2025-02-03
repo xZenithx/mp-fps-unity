@@ -121,10 +121,20 @@ public class PlayerManager : NetworkBehaviour
 
         PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
         // Is this me?
+        Debug.Log("RecordPlayer: " + player.OwnerClientId + " isLocalPlayer: " + player.IsLocalPlayer + " isOwner: " + player.IsOwner + " isClient: " + player.IsClient);
         if (player.IsLocalPlayer)
         {
-            playerHealth.OnDeath.AddListener(OpenRespawnMenu);
-            OnLocalPlayerSpawned.AddListener(player.OnSpawn);
+            playerHealth.OnDeath.AddListener(() => {
+                Debug.Log("Client.playerHealth.OnDeath: " + player.OwnerClientId);
+
+                OpenRespawnMenu();
+            });
+
+            OnLocalPlayerSpawned.AddListener(() => {
+                Debug.Log("Client.OnLocalPlayerSpawned: " + player.OwnerClientId);
+
+                player.OnSpawn();
+            });
 
             playerHealth.OnDeath.AddListener(() => {
                 Debug.Log("Client.playerHealth.OnDeath: " + player.OwnerClientId);

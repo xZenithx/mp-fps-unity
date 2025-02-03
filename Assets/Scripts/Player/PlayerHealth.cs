@@ -28,16 +28,10 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (IsOwner)
         {
-            OnDeath.AddListener(() =>
-            {
-                PlayerManager.Instance.OpenRespawnMenu();
-            });
-            
-            _health.OnValueChanged += (_, current) => 
-            {
-                Debug.Log("Client> Health changed to " + current);
-                UpdateHealthSlider();
-            };
+            // OnDeath.AddListener(() =>
+            // {
+            //     PlayerManager.Instance.OpenRespawnMenu();
+            // });
 
             WaitForHealthSlider();
         }
@@ -52,18 +46,31 @@ public class PlayerHealth : NetworkBehaviour
 
         Debug.Log("Client> Found HealthSlider");
         HealthSlider = GameObject.FindGameObjectWithTag("Healthbar").GetComponent<Slider>();
-        UpdateHealthSlider();
     }
 
-    public void UpdateHealthSlider()
+    public void UpdateHealthSlider(float deltaTime)
     {
-        if (HealthSlider == null) return;
+        if (HealthSlider == null)
+        {
+            Debug.LogWarning("HealthSlider is null");
+            return;
+        }
+
         float hpPercent = GetHealthPercentage();
-        if (float.IsNaN(hpPercent)) return;
+        
+        if (float.IsNaN(hpPercent))
+        {
+            Debug.LogWarning("hpPercent is NaN");
+            return;
+        }
 
         hpPercent = Mathf.Clamp(hpPercent, 0, 1);
 
-        HealthSlider.value = hpPercent;
+        HealthSlider.value = Mathf.Lerp(
+            HealthSlider.value,
+            hpPercent,
+            -1f + Mathf.Exp(16f * deltaTime)
+        );
     }
 
     [Rpc(SendTo.Server, RequireOwnership = false)]
@@ -119,7 +126,7 @@ public class PlayerHealth : NetworkBehaviour
         }
         catch (System.Exception e)
         {
-            Debug.Log(e);
+            Debug.LogError(e);
         }
     }
 

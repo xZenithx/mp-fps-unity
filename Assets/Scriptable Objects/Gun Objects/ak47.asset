@@ -16,12 +16,13 @@ MonoBehaviour:
   weaponId: ak47
   damage: 22
   maxDistance: 200
-  spread: {x: 0, y: 0, z: 0}
-  recoil: {x: 0, y: 1, z: 0}
-  magSize: 31
+  fireMode: 1
+  spread: {x: 0, y: 0}
+  recoil: {x: 0, y: 1}
+  magSize: 30
   maxAmmo: 9999
   fireRate: 600
-  reloadTime: 0.7
+  reloadTime: 0.9
   reloadCurve:
     serializedVersion: 2
     m_Curve:
@@ -51,7 +52,7 @@ MonoBehaviour:
   shotSoundPitchMin: 98
   shotSoundPitchMax: 102
   reloadSound: {fileID: 8300000, guid: 8ff26cff96fa65e43bb73adb5b5cd2f0, type: 3}
-  reloadSoundVolume: 300
+  reloadSoundVolume: 100
   reloadSoundPitchMin: 95
   reloadSoundPitchMax: 105
   emptySound: {fileID: 8300000, guid: 8b71077372e71a545a5e0c241b79dc61, type: 3}
