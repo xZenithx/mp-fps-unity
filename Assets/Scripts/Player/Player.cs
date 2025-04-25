@@ -113,6 +113,7 @@ public class Player : NetworkBehaviour
     private string weaponSwitchName = null;
     private bool spawnSwitchWeapon = false;
     private GameObject _hudCanvas;
+    private Vector2 _weaponRecoil;
 
     private void Awake()
     {
@@ -230,6 +231,11 @@ public class Player : NetworkBehaviour
         _hudCanvas.SetActive(active);
     }
 
+    public void AddRecoil(Vector2 recoil)
+    {
+        _weaponRecoil += recoil;
+    }
+
     public void Update()
     {
         if (!isPlayerReady || !playerHealth.IsAlive())
@@ -241,7 +247,16 @@ public class Player : NetworkBehaviour
 
         bool isPaused = PauseManager.Instance.IsPaused();
 
+
         Vector2 lookInput = isPaused ? Vector2.zero : LookInput;
+        
+        // Add Recoil
+        if (_weaponRecoil != Vector2.zero)
+        {
+            Debug.Log($"recoil: {_weaponRecoil}");
+            lookInput += _weaponRecoil;
+            _weaponRecoil = Vector2.zero;
+        }
 
         CameraInput cameraInput = new()
         {

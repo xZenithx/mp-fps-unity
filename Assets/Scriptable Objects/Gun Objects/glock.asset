@@ -17,8 +17,8 @@ MonoBehaviour:
   damage: 12
   maxDistance: 100
   fireMode: 0
-  spread: {x: 0, y: 0}
-  recoil: {x: 0, y: 0}
+  spread: {x: 0.01, y: 0.01}
+  recoil: {x: 0, y: 3}
   magSize: 20
   maxAmmo: 9999
   fireRate: 400

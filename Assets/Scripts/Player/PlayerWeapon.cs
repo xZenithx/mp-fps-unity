@@ -33,6 +33,8 @@ public struct ShotResult : INetworkSerializable
 
 public class PlayerWeapon : NetworkBehaviour
 {
+    private Player player;
+
     [Header("Settings")]
     [SerializeField] private float weaponSwitchTime = 0.5f;
     [SerializeField] private float weaponSwitchDelay = 0.5f;
@@ -67,6 +69,8 @@ public class PlayerWeapon : NetworkBehaviour
 
     public void Initialize()
     {
+        player = GetComponent<Player>();
+
         WaitForAmmoText();
     }
 
@@ -209,7 +213,6 @@ public class PlayerWeapon : NetworkBehaviour
         Debug.Log($"FireWeaponServerRpc CanFire {clientId}");
 
         _currentMagazine--;
-
         Vector3 direction = eyeAngles;
 
         // Apply spread
@@ -271,10 +274,14 @@ public class PlayerWeapon : NetworkBehaviour
             // Destroy(impactEffect, 1f);
         }
 
-        if (IsOwner && !IsHost)
+        if (IsOwner)
         {
+            if (!IsHost)
+            {
+                _currentMagazine--;
+            }
 
-            _currentMagazine--;
+            player.AddRecoil(CurrentWeapon.recoil);
         }
         
         UpdateAmmoText();
@@ -296,16 +303,16 @@ public class PlayerWeapon : NetworkBehaviour
 
     private void ReloadWeapon()
     {
-        Debug.Log($"Reloading weapon! {IsClient} {IsOwner}");
+        Debug.Log($"Reloading weapon! {IsClient} {IsOwner} {_reloading} {_currentMagazine} {_magazineSize}");
         if (!IsOwner || _reloading || _currentMagazine == _magazineSize) return;
-        ReloadWeaponServerRpc(NetworkManager.Singleton.LocalClientId);
 
+        ReloadWeaponServerRpc(NetworkManager.Singleton.LocalClientId);
     }
 
     [Rpc(SendTo.Server)]
     private void ReloadWeaponServerRpc(ulong clientId)
     {
-        Debug.Log($"ReloadWeaponServerRpc {clientId}");
+        Debug.Log($"ReloadWeaponServerRpc {clientId} {IsServer} {_reloading} {_currentMagazine} {_magazineSize}");
         if (!IsServer || _reloading) return;
 
         if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client)) return;

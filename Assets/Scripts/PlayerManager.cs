@@ -86,12 +86,35 @@ public class PlayerManager : NetworkBehaviour
 
     private async void SetHostMaxHealth()
     {
-        Player player = NetworkManager.Singleton.ConnectedClients[NetworkManager.Singleton.LocalClientId].PlayerObject.GetComponent<Player>();
+        while (!NetworkManager.Singleton.ConnectedClients.TryGetValue(NetworkManager.Singleton.LocalClientId, out _))
+        {
+            Debug.LogWarning("Waiting for the local client to be available...");
+            await Task.Delay(100); // Wait for 100 milliseconds before trying again
+        }
         
+        NetworkClient client = NetworkManager.Singleton.ConnectedClients[NetworkManager.Singleton.LocalClientId];
+
+        if (client.PlayerObject == null)
+        {
+            Debug.LogError("Local client does not have a PlayerObject.");
+            return;
+        }
+
+        if (!client.PlayerObject.TryGetComponent<Player>(out var player))
+        {
+            Debug.LogError("Player component not found on PlayerObject.");
+            return;
+        }
+
         await player.WaitForPlayerReady();
         await WaitForPlayerHealthValid(player);
 
-        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+        if (!player.TryGetComponent<PlayerHealth>(out var playerHealth))
+        {
+            Debug.LogError("PlayerHealth component not found on Player.");
+            return;
+        }
+
         playerHealth.SetMaxHealthServerRpc(GameManager.Instance.GetPlayerHealth());
     }
 
@@ -104,6 +127,11 @@ public class PlayerManager : NetworkBehaviour
 
             if (!IsServer) return;
 
+            if (_initialSpawnPoint == null)
+            {
+                _initialSpawnPoint = GameObject.FindGameObjectWithTag("Initial Spawnpoint").transform;
+            }
+
             ClientRpcParams clientRpcParams = new()
             {
                 Send = new ClientRpcSendParams
@@ -114,6 +142,8 @@ public class PlayerManager : NetworkBehaviour
             SetPositionClientRpc(_initialSpawnPoint.position, _initialSpawnPoint.rotation, clientRpcParams);
         }
     }
+
+    
 
     private void RecordPlayer(Player player)
     {

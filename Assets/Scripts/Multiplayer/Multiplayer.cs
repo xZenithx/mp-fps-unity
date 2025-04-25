@@ -234,7 +234,7 @@ public class Multiplayer : MonoBehaviour
     {
         NetworkManager.Singleton.Shutdown();
         // At this point we must use the UnityEngine's SceneManager to switch back to the MainMenu
-        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+        UnityEngine.SceneManagement.SceneManager.LoadScene(1);
     }
 
 
